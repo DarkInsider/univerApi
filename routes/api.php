@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Http\Controllers\FacultyController;
+use Http\Controllers\UserController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -14,8 +16,14 @@ use Http\Controllers\FacultyController;
 |
 */
 
-Route::apiResource('/faculty', 'FacultyController');
+//Route::apiResource('/faculty', 'FacultyController');
+//Route::apiResource('/user', 'UserController');
+Route::post('/user/login', 'UserController@login');
+Route::get('/user/login', 'UserController@block');
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::get('/faculty', 'FacultyController@index');
+Route::post('/faculty/create', 'FacultyController@create');
+Route::get('/faculty/create', 'UserController@block');
+//Route::middleware('auth:api')->get('/user', function (Request $request) {
+//    return $request->user();
+//});
