@@ -21,6 +21,7 @@ class CreateChoisesTable extends Migration
             $table->foreign('student_id')->references('id')->on('students');
             $table->bigInteger('subject_id')->unsigned();
             $table->foreign('subject_id')->references('id')->on('subjects');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

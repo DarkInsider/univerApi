@@ -90,6 +90,48 @@ class FacultyController extends Controller
 
 
     }
+	
+	public function delete(Request $request)
+    {
+        //requests
+        $err=[];
+        if($request->token === null){
+            array_push($err, 'token is required');
+        }
+        if($request->id === null){
+            array_push($err, 'id is required');
+        }
+
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+            $user = getUser($request->token);
+            if($user === 'err'){
+                return response('server error', 500);
+            }
+            if($user === null){
+                return response('unauthorized', 401);
+            }
+            if($user->id === 1){
+                try {
+			DB::table('faculties')
+			->where('id', $request->id)
+			->update(['hidden' => true]);
+		}
+		catch(Exception $e) {
+			return response($e, 500);
+		}
+
+                return response(  json_encode('succes', JSON_UNESCAPED_UNICODE), 200);
+            }
+
+            else{
+                return response('forbidden', 403);
+            }
+
+
+    }
 
     /**
      * Show the form for creating a new resource.

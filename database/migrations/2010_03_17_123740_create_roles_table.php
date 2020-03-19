@@ -21,7 +21,11 @@ class CreateRolesTable extends Migration
             $table->timestamps();
         });
         DB::table('roles')->insert([
-            ['id' => 1, 'title' => 'SU', 'hidden' => true]
+            ['id' => 1, 'title' => 'SU', 'hidden' => true],
+            ['id' => 2, 'title' => 'AF', 'hidden' => false],
+            ['id' => 3, 'title' => 'AK', 'hidden' => false],
+            ['id' => 4, 'title' => 'Student', 'hidden' => false],
+            ['id' => 5, 'title' => 'VU', 'hidden' => false],
         ]);
     }
 

@@ -20,10 +20,15 @@ use Http\Controllers\UserController;
 //Route::apiResource('/user', 'UserController');
 Route::post('/user/login', 'UserController@login');
 Route::get('/user/login', 'UserController@block');
+Route::post('/user', 'UserController@create');
+Route::get('/user', 'UserController@block');
 
 Route::get('/faculty', 'FacultyController@index');
 Route::post('/faculty/create', 'FacultyController@create');
 Route::get('/faculty/create', 'UserController@block');
+
+Route::delete('/faculty', 'FacultyController@delete');
+
 //Route::middleware('auth:api')->get('/user', function (Request $request) {
 //    return $request->user();
 //});

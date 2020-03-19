@@ -6,6 +6,15 @@ use App\Http\Requests\UserRequest;
 use App\User;
 use Illuminate\Support\Facades\DB;
 
+function getUser($token){
+    try{
+        $user = DB::table('users')->where('token', $token)->first();
+    }catch (Exception $e){
+        return 'err';
+    }
+    return $user;
+}
+
 
 class UserController extends Controller
 {
@@ -25,6 +34,16 @@ class UserController extends Controller
 
     public function login(Request $request)
     {
+        $err=[];
+        if($request->login === null){
+            array_push($err, 'login is required');
+        }
+        if($request->password === null){
+            array_push($err, 'password is required');
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
 
         try{
             $user = DB::table('users')->where([['login', $request->login], ['password', md5($request->password)]])->first();
@@ -63,6 +82,164 @@ class UserController extends Controller
 
 
     }
+
+    public function create(Request $request)
+    {
+        //requests
+        $err=[];
+        if($request->token === null){
+            array_push($err, 'token is required');
+        }
+        if($request->name === null){
+            array_push($err, 'name is required');
+        }
+        if($request->login === null){
+            array_push($err, 'login is required');
+
+        }else {
+            try{
+                $user = DB::table('users')
+                    ->select('users.login')->where('users.login', $request->login)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($user !== null){
+                array_push($err, 'login must be unique');
+            }
+        }
+        if($request->password === null){
+            array_push($err, 'password is required');
+        }
+        if($request->role_id === null){
+            array_push($err, 'role_id is required');
+
+        }else{
+            try{
+                $role = DB::table('roles')
+                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($role === null){
+                array_push($err, 'role must exist');
+            }
+        }
+        if($request->department_id === null){
+            array_push($err, 'department_id is required');
+
+        }else{
+            try{
+                $role = DB::table('departments')
+                    ->select('departments.id')->where('departments.id', $request->department_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($role === null){
+                array_push($err, 'department must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = getUser($request->token);
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+
+        function create_user($request){
+            $date = date('Y-m-d H:i:s');
+            $ret = User::create(
+                [
+                    'name' => $request->name,
+                    'login' => $request->login,
+                    'password' => md5($request->password),
+                    'role_id' => $request->role_id,
+                    'department_id' => $request->department_id,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]
+            );
+            return $ret;
+        }
+
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = create_user($request);
+            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+        }else {
+            try{
+                $ret = DB::table('possibility_has_roles')
+                    ->join('role_has_roles', 'possibility_has_roles.role_id', '=', 'role_has_roles.role_id')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 14],
+                        ['role_has_roles.role_id_has', $request->role_id],
+                    ])->get();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if(count($ret)>0){
+                $flag = false;
+                $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $request->department_id],
+                ])->first();
+
+                foreach ($ret as $item){
+                    if($item->type === 'faculty'){
+                        if($item->scope === 'own'){
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
+                               $flag = true;
+                               break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($facultyReq->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }else if($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            if(intval($user->department_id) === intval($request->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($request->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+
+                if($flag){
+                    $ret = create_user($request);
+                    return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                }else{
+                    return response('forbidden', 403);
+                }
+            }
+            else{
+                return response('forbidden', 403);
+            }
+        }
+    }
+
+
+
+
 
     /**
      * Store a newly created resource in storage.

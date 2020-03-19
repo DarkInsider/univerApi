@@ -15,7 +15,7 @@ class CreateDepartmentHasLecturersTable extends Migration
     {
         Schema::create('department_has_lecturers', function (Blueprint $table) {
             $table->bigIncrements('id');
-
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

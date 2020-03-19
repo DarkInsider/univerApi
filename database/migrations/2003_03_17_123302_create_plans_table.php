@@ -18,6 +18,7 @@ class CreatePlansTable extends Migration
             $table->string('title');
             $table->bigInteger('group_id')->unsigned();
             $table->foreign('group_id')->references('id')->on('groups');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

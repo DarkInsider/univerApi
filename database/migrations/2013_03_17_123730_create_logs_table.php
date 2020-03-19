@@ -20,6 +20,7 @@ class CreateLogsTable extends Migration
             $table->string('file');
             $table->bigInteger('user_id')->unsigned();
             $table->foreign('user_id')->references('id')->on('users');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

@@ -19,6 +19,7 @@ class CreateNotesTable extends Migration
             $table->integer('semester');
             $table->bigInteger('plan_id')->unsigned();
             $table->foreign('plan_id')->references('id')->on('plans');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

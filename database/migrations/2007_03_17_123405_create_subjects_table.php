@@ -22,6 +22,7 @@ class CreateSubjectsTable extends Migration
             $table->foreign('lecturer_id')->references('id')->on('lecturers');
             $table->bigInteger('department_id')->unsigned();
             $table->foreign('department_id')->references('id')->on('departments');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

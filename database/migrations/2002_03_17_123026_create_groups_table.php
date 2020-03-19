@@ -18,6 +18,7 @@ class CreateGroupsTable extends Migration
             $table->string('code');
             $table->bigInteger('department_id')->unsigned();
             $table->foreign('department_id')->references('id')->on('departments');
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }
