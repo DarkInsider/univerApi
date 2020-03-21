@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Faculty extends Model
 {
-    protected $fillable = ['title'];
+    protected $fillable = ['id', 'title'];
 
 	protected $hidden = ['created_at', 'updated_at', 'deleted_at', 'hidden'];
 

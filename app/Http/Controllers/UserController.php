@@ -87,7 +87,7 @@ class UserController extends Controller
     {
         //requests
         $err=[];
-        if($request->token === null){
+        if($request->header('token') === null){
             array_push($err, 'token is required');
         }
         if($request->name === null){
@@ -145,7 +145,7 @@ class UserController extends Controller
             return response($err, 400);
         }
 
-        $user = getUser($request->token);
+        $user = getUser($request->header('token'));
         if($user === 'err'){
             return response('server error', 500);
         }
