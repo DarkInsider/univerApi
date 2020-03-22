@@ -50,6 +50,7 @@ class FacultyController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 1],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){
@@ -160,6 +161,7 @@ class FacultyController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 3],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){

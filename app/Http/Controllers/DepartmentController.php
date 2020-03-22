@@ -75,6 +75,7 @@ class DepartmentController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 6],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){
@@ -177,6 +178,7 @@ class DepartmentController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 8],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){
@@ -336,6 +338,7 @@ class DepartmentController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 7],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){
@@ -443,6 +446,7 @@ class DepartmentController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 5],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){

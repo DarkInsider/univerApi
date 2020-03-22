@@ -181,6 +181,7 @@ class UserController extends Controller
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 14],
                         ['role_has_roles.role_id_has', $request->role_id],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){

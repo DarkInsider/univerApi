@@ -3,6 +3,11 @@
 use Illuminate\Http\Request;
 use Http\Controllers\FacultyController;
 use Http\Controllers\UserController;
+use Http\Controllers\DepartmentController;
+use Http\Controllers\RoleController;
+use Http\Controllers\PossibilityController;
+use Http\Controllers\PossibilityHasRoleController;
+use Http\Controllers\RoleHasRoleController;
 
 
 /*
@@ -16,8 +21,7 @@ use Http\Controllers\UserController;
 |
 */
 
-//Route::apiResource('/faculty', 'FacultyController');
-//Route::apiResource('/user', 'UserController');
+
 Route::post('/user/login', 'UserController@login');
 Route::get('/user/login', 'UserController@block');
 
@@ -39,8 +43,15 @@ Route::put('/department', 'DepartmentController@update');
 Route::delete('/department', 'DepartmentController@delete');
 
 Route::get('/role', 'RoleController@get');
+Route::post('/role', 'RoleController@create');
+Route::put('/role', 'RoleController@update');
+Route::delete('/role', 'RoleController@delete');
 
+Route::get('/possibility', 'PossibilityController@get');
 
-//Route::middleware('auth:api')->get('/user', function (Request $request) {
-//    return $request->user();
-//});
+Route::get('/possibilityHasRole', 'PossibilityHasRoleController@get');
+Route::post('/possibilityHasRole', 'PossibilityHasRoleController@create');
+Route::put('/possibilityHasRole', 'PossibilityHasRoleController@update');
+Route::delete('/possibilityHasRole', 'PossibilityHasRoleController@delete');
+
+Route::get('/roleHasRole', 'RoleHasRoleController@get');

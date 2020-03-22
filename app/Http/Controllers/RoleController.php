@@ -6,15 +6,12 @@ use App\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-function getUser($token){
-    try{
-        $user = DB::table('users')->where('token', $token)->first();
-    }catch (Exception $e){
-        return 'err';
-    }
-    return $user;
-}
 
+use App\Http\Helpers\GetUser;
+use App\Http\Helpers\Normalize;
+
+use App\Possibility_has_role;
+use App\Role_has_role;
 
 class RoleController extends Controller
 {
@@ -28,7 +25,7 @@ class RoleController extends Controller
             return response($err, 400);
         }
 
-        $user = getUser($request->header('token'));
+        $user = GetUser::get($request->header('token'));
         if($user === 'err'){
             return response('server error', 500);
         }
@@ -50,7 +47,8 @@ class RoleController extends Controller
                     ->select()->where([
                         ['possibility_has_roles.role_id', $user->role_id],
                         ['possibility_has_roles.possibility_id', 9],
-                        ['possibility_has_roles.type', 'role']
+                        ['possibility_has_roles.type', 'role'],
+                        ['possibility_has_roles.hidden', 0]
                     ])->get();
             }
             catch (Exception $e){
@@ -82,18 +80,8 @@ class RoleController extends Controller
                     }
                 }
 
-                $tpm =[];
-                $ids = [];
-                foreach ($role as $block){
-                    foreach ($block as $item){
-                        if(!in_array($item->id, $ids)){
-                            array_push($tpm, $item);
-                            array_push($ids, $item->id);
-                        }
 
-                    }
-                }
-                return response(json_encode($tpm, JSON_UNESCAPED_UNICODE), 200);
+                return response(json_encode(Normalize::normalize($role), JSON_UNESCAPED_UNICODE), 200);
 
             }else{
                 return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -103,4 +91,278 @@ class RoleController extends Controller
 
         }
     }
+
+
+    public function create(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if ($request->title === null) {
+            array_push($err, 'title is required');
+        }
+        if($request->role_id !== null){
+            try{
+                $ret = DB::table('roles')
+                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'role must exist');
+            }
+        }
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+
+        function create_role($request, $idd){
+            $date = date('Y-m-d H:i:s');
+            if($idd === false){
+                $ret = Role::create(
+                    [
+                        'title' => $request->title,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+                return $ret;
+            }else {
+                $ret['role'] =  Role::create(
+                    [
+                        'title' => $request->title,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+                $pos =  DB::table('possibility_has_roles')
+                    ->select('possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id')->where([
+                        ['possibility_has_roles.role_id', $idd]
+                    ])->get();
+
+                foreach ($pos as $possibility){
+                    DB::table('possibility_has_roles')->insert([
+                        'type' => $possibility->type,
+                        'scope' => $possibility->scope,
+                        'role_id' => $ret['role']->id,
+                        'possibility_id' => $possibility->possibility_id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]);
+                }
+
+                $pos =  DB::table('possibility_has_roles')
+                    ->select('possibility_has_roles.id', 'possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id', 'possibility_has_roles.role_id')->where([
+                        ['possibility_has_roles.role_id', $ret['role']->id]
+                    ])->get();
+
+                $ret['possibilities']= $pos;
+
+
+
+                $roleHasRole =  DB::table('role_has_roles')
+                    ->select('role_has_roles.role_id_has')->where([
+                        ['role_has_roles.role_id', $idd]
+                    ])->get();
+
+                foreach ($roleHasRole as $role){
+                    DB::table('role_has_roles')->insert([
+                        'role_id_has' => $role->role_id_has,
+                        'role_id' => $ret['role']->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]);
+                }
+
+                $roleHasRole =  DB::table('role_has_roles')
+                    ->select('role_has_roles.id', 'role_has_roles.role_id','role_has_roles.role_id_has')->where([
+                        ['role_has_roles.role_id', $ret['role']->id]
+                    ])->get();
+
+                $ret['roleHasRole']= $roleHasRole;
+
+                return $ret;
+            }
+
+        }
+
+         if ($user->id === 1) {  //Если суперюзер то сразу выполняем
+             if($request->role_id !== null) {
+                 $ret = create_role($request, $request->role_id);
+             }else{
+                 $ret = create_role($request, false);
+             }
+             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+
+         } else {
+             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+         }
+    }
+
+    public function update(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if ($request->title === null) {
+            array_push($err, 'title is required');
+        }
+        if($request->role_id === null){
+            array_push($err, 'role_id is required');
+
+        }else{
+            try{
+                $ret = DB::table('roles')
+                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'role must exist');
+            }
+        }
+
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+
+
+        function update_role($request){
+            $date = date('Y-m-d H:i:s');
+            try {
+                DB::table('roles')
+                    ->where('roles.id', $request->role_id)
+                    ->update([
+                        'title' => $request->title,
+                        'updated_at' => $date,
+                    ]);
+            } catch (Exception $e) {
+                return 'err';
+            }
+            try {
+                $ret = DB::table('roles')
+                    ->select('roles.id', 'roles.title')->where('roles.id', $request->role_id)->first();
+            } catch (Exception $e) {
+                return 'err';
+            }
+            return $ret;
+        }
+
+
+        if ($user->id === 1) {  //Если суперюзер то сразу выполняем
+            $ret = update_role($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+
+
+        } else {
+            return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+        }
+    }
+
+    public function delete(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if($request->role_id === null){
+            array_push($err, 'role_id is required');
+
+        }else{
+            try{
+                $ret = DB::table('roles')
+                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'role must exist');
+            }
+        }
+
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+
+
+        function delete_role($request){
+            $date = date('Y-m-d H:i:s');
+            try {
+                DB::table('roles')
+                    ->where('roles.id', $request->role_id)
+                    ->update([
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]);
+            } catch (Exception $e) {
+                return 'err';
+            }
+            try {
+                DB::table('possibility_has_roles')
+                    ->where('possibility_has_roles.role_id', $request->role_id)
+                    ->update([
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]);
+            } catch (Exception $e) {
+                return 'err';
+            }
+            try {
+                DB::table('role_has_roles')
+                    ->where('role_has_roles.role_id', $request->role_id)
+                    ->update([
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]);
+            } catch (Exception $e) {
+                return 'err';
+            }
+            return 'deleted';
+        }
+
+        if ($user->id === 1) {  //Если суперюзер то сразу выполняем
+            $ret = delete_role($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+        } else {
+            return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+        }
+    }
+
 }
