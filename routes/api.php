@@ -36,6 +36,7 @@ Route::get('/faculty/create', 'UserController@block');
 Route::get('/department', 'DepartmentController@get');
 Route::post('/department', 'DepartmentController@create');
 Route::put('/department', 'DepartmentController@update');
+Route::delete('/department', 'DepartmentController@delete');
 
 Route::get('/role', 'RoleController@get');
 

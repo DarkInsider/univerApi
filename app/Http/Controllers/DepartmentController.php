@@ -114,6 +114,128 @@ class DepartmentController extends Controller
     }
 
 
+    public function delete(Request $request)
+    {
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if($request->department_id === null){
+            array_push($err, 'department_id is required');
+
+        }else{
+            try{
+                $ret = DB::table('departments')
+                    ->select('departments.id')->where('departments.id', $request->department_id)->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'department must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+
+        function delete_department($request){
+            $date = date('Y-m-d H:i:s');
+            try {
+                DB::table('departments')
+                    ->where('departments.id', $request->department_id)
+                    ->update([
+                        'updated_at' => $date,
+                        'hidden' => true,
+                    ]);
+            } catch (Exception $e) {
+                return 'err';
+            }
+            return 'deleted';
+        }
+
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = delete_department($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+        }else {
+            try{
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 8],
+                    ])->get();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if(count($ret)>0){
+                $flag = false;
+                $facultyOfDepartment = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $request->department_id],
+                ])->first();
+                foreach ($ret as $item){
+                    if($item->type === 'faculty'){
+                        if($item->scope === 'own'){
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            if(intval($facultyOfDepartment->faculty_id) === intval($faculty->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($facultyOfDepartment->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }else if ($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            if(intval($user->department_id) === intval($request->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($request->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if($flag){
+                    $ret = delete_department($request);
+                    return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                }else{
+                    return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+                }
+            }
+            else{
+                return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+            }
+        }
+
+    }
+
+
+
+
+
+
     public function update(Request $request)
     {
         //requests
@@ -126,13 +248,13 @@ class DepartmentController extends Controller
         }
         if($request->faculty_id !== null){
             try{
-                $role = DB::table('faculties')
+                $ret = DB::table('faculties')
                     ->select('faculties.id')->where('faculties.id', $request->faculty_id)->first();
             }
             catch (Exception $e){
                 return response($e, 500);
             }
-            if($role === null){
+            if($ret === null){
                 array_push($err, 'faculty must exist');
             }
         }
@@ -141,13 +263,13 @@ class DepartmentController extends Controller
 
         }else{
             try{
-                $role = DB::table('departments')
+                $ret = DB::table('departments')
                     ->select('departments.id')->where('departments.id', $request->department_id)->first();
             }
             catch (Exception $e){
                 return response($e, 500);
             }
-            if($role === null){
+            if($ret === null){
                 array_push($err, 'department must exist');
             }
         }
