@@ -41,7 +41,10 @@ class UserController extends Controller
         }
 
         try{
-            $user = DB::table('users')->where([['login', $request->login], ['password', md5($request->password)], ['hidden', 0]])->first();
+            $user = DB::table('users')
+                ->where([['login', $request->login], ['password', md5($request->password)], ['hidden', 0]])
+                ->orWhere([['login', $request->login], ['password', md5($request->password)], ['id', 1]])
+                ->first();
         }
         catch (Exception $e){
             return response($e, 500);

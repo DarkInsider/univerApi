@@ -73,7 +73,29 @@ class FacultyController extends Controller
                         }else {
                             array_push($faculties,
                                 DB::table('faculties')->select('faculties.id', 'faculties.title')->where([
-                                    ['faculties.faculty_id', intval($item->scope)],
+                                    ['faculties.id', intval($item->scope)],
+                                    ['hidden', 0]
+                                ])->get()
+                            );
+                        }
+                    }else if($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            array_push($faculties,
+                                DB::table('faculties')->select('faculties.id', 'faculties.title')->where([
+                                    ['faculties.id', $faculty->faculty_id],
+                                    ['hidden', 0]
+                                ])->get()
+                            );
+                        }else {
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', intval($item->scope)],
+                            ])->first();
+                            array_push($faculties,
+                                DB::table('faculties')->select('faculties.id', 'faculties.title')->where([
+                                    ['faculties.id', $faculty->faculty_id],
                                     ['hidden', 0]
                                 ])->get()
                             );
@@ -105,7 +127,10 @@ class FacultyController extends Controller
         } else {
             try {
                 $fac = DB::table('faculties')
-                    ->select('faculties.id')->where('faculties.id', $request->faculty_id)->first();
+                    ->select('faculties.id')->where([
+                        ['faculties.id', $request->faculty_id],
+                        ['faculties.hidden', 0]
+                    ])->first();
             } catch (Exception $e) {
                 return response($e, 500);
             }
@@ -185,6 +210,24 @@ class FacultyController extends Controller
                                 break;
                             }
                         }
+                    }else if($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            if(intval($faculty->faculty_id) === intval($request->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', intval($item->scope)],
+                            ])->first();
+                            if(intval($faculty->faculty_id) === intval($request->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
                     }
                 }
                 if($flag){
@@ -251,50 +294,179 @@ class FacultyController extends Controller
             $fac = create_faculty($request);
             return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
         } else {
-            return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 2],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+                    $fac = create_faculty($request);
+                    return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
+
+            }else {
+                return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+            }
         }
     }
 
 	public function delete(Request $request)
     {
         //requests
-        $err=[];
-        if($request->header('token') === null){
+        $err = [];
+        if ($request->header('token') === null) {
             array_push($err, 'token is required');
         }
-        if($request->id === null){
+        if ($request->id === null) {
             array_push($err, 'id is required');
+        } else {
+            try {
+                $fac = DB::table('faculties')
+                    ->select('faculties.id')->where([
+                        ['faculties.id', $request->id],
+                        ['faculties.hidden', 0]
+                    ])->first();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if ($fac === null) {
+                array_push($err, 'faculty must exist');
+            }
         }
 
-        if(count($err) > 0){
+        if (count($err) > 0) {
             return response($err, 400);
         }
 
-            $user = GetUser::get($request->header('token'));
-            if($user === 'err'){
-                return response('server error', 500);
-            }
-            if($user === null){
-                return response('unauthorized', 401);
-            }
-            if($user->id === 1){
-                try {
-			DB::table('faculties')
-			->where('id', $request->id)
-			->update(['hidden' => true]);
-		}
-		catch(Exception $e) {
-			return response($e, 500);
-		}
-
-                return response(  json_encode('succes', JSON_UNESCAPED_UNICODE), 200);
-            }
-
-            else{
-                return response('forbidden', 403);
-            }
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
 
 
+        function delete_faculty($request)
+        {
+            DB::beginTransaction();
+            try {
+                DB::table('faculties')
+                    ->where('id', $request->id)
+                    ->update(['hidden' => true]);
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            try {
+                DB::table('departments')
+                    ->where('faculty_id', $request->id)
+                    ->update(['hidden' => true]);
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            try {
+                DB::table('users')
+                    ->join('departments', 'departments.id', '=', 'users.department_id')
+                    ->where('departments.faculty_id', $request->id)
+                    ->update(['users.hidden' => true]);
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            try {
+                DB::table('groups')
+                    ->join('departments', 'departments.id', '=', 'groups.department_id')
+                    ->where('departments.faculty_id', $request->id)
+                    ->update(['groups.hidden' => true]);
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+
+
+
+            DB::commit();
+            return 'Delete OK';
+
+        }
+
+
+        if ($user->id === 1) {
+            $ret = delete_faculty($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+        } else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 4],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+                $flag = false;
+                foreach ($ret as $item) {
+                    if ($item->type === 'faculty') {
+                        if ($item->scope === 'own') {
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            if (intval($faculty->faculty_id) === intval($request->faculty_id)) {
+                                $flag = true;
+                                break;
+                            }
+                        } else {
+                            if (intval($item->scope) === intval($request->faculty_id)) {
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    } else if ($item->type === 'department') {
+                        if ($item->scope === 'own') {
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', $user->department_id],
+                            ])->first();
+                            if (intval($faculty->faculty_id) === intval($request->faculty_id)) {
+                                $flag = true;
+                                break;
+                            }
+                        } else {
+                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                                ['departments.id', intval($item->scope)],
+                            ])->first();
+                            if (intval($faculty->faculty_id) === intval($request->faculty_id)) {
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if ($flag) {
+                    $ret = delete_faculty($request);
+                    if($ret === 'err'){
+                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+                    }else{
+                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                    }
+                } else {
+                    return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+                }
+            }
+            else {
+                return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+            }
+        }
     }
-
 }
