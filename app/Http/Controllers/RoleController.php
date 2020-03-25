@@ -136,7 +136,9 @@ class RoleController extends Controller
                         'updated_at' => $date,
                     ]
                 );
-                return $ret;
+                $tRet = [];
+                $tRet['role']=$ret;
+                return $tRet;
             }else {
                 $ret['role'] =  Role::create(
                     [
@@ -147,7 +149,8 @@ class RoleController extends Controller
                 );
                 $pos =  DB::table('possibility_has_roles')
                     ->select('possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id')->where([
-                        ['possibility_has_roles.role_id', $idd]
+                        ['possibility_has_roles.role_id', $idd],
+                        ['possibility_has_roles.hidden', 0],
                     ])->get();
 
                 foreach ($pos as $possibility){
@@ -160,19 +163,54 @@ class RoleController extends Controller
                         'updated_at' => $date,
                     ]);
                 }
-
                 $pos =  DB::table('possibility_has_roles')
-                    ->select('possibility_has_roles.id', 'possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id', 'possibility_has_roles.role_id')->where([
-                        ['possibility_has_roles.role_id', $ret['role']->id]
+                    ->join('possibilities', 'possibilities.id', '=', 'possibility_has_roles.possibility_id')
+                    ->select('possibility_has_roles.id', 'possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id', 'possibilities.title as possibility_title', 'possibility_has_roles.role_id')->where([
+                        ['possibility_has_roles.role_id', $ret['role']->id],
+                        ['possibility_has_roles.hidden', 0],
                     ])->get();
 
-                $ret['possibilities']= $pos;
+
+                $tRet = [];
+                foreach ($pos as $item){
+                    $tmp = $item;
+                    if(($item->type === 'faculty') && ($item->scope !== 'own')){
+                        try{
+                            $rt = DB::table('faculties')->select('faculties.title')->where('faculties.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    if(($item->type === 'department') && ($item->scope !== 'own')){
+                        try {
+                            $rt = DB::table('departments')->select('departments.title')->where('departments.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    array_push($tRet, $tmp);
+                }
+
+
+
+
+                $ret['possibilities']= $tRet;
 
 
 
                 $roleHasRole =  DB::table('role_has_roles')
                     ->select('role_has_roles.role_id_has')->where([
-                        ['role_has_roles.role_id', $idd]
+                        ['role_has_roles.role_id', $idd],
+                        ['role_has_roles.hidden', 0],
                     ])->get();
 
                 foreach ($roleHasRole as $role){
@@ -186,7 +224,8 @@ class RoleController extends Controller
 
                 $roleHasRole =  DB::table('role_has_roles')
                     ->select('role_has_roles.id', 'role_has_roles.role_id','role_has_roles.role_id_has')->where([
-                        ['role_has_roles.role_id', $ret['role']->id]
+                        ['role_has_roles.role_id', $ret['role']->id],
+                        ['role_has_roles.hidden', 0],
                     ])->get();
 
                 $ret['roleHasRole']= $roleHasRole;

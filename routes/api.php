@@ -25,8 +25,13 @@ use Http\Controllers\RoleHasRoleController;
 Route::post('/user/login', 'UserController@login');
 Route::get('/user/login', 'UserController@block');
 
+Route::get('/user/logout', 'UserController@logout');
+Route::get('/user/getInfoByToken', 'UserController@getUserInfoByToken');
+
 Route::post('/user', 'UserController@create');
-Route::get('/user', 'UserController@block');
+Route::get('/user', 'UserController@get');
+Route::put('/user', 'UserController@update');
+Route::delete('/user', 'UserController@delete');
 
 Route::get('/faculty', 'FacultyController@get');
 Route::post('/faculty', 'FacultyController@create');
@@ -55,3 +60,11 @@ Route::put('/possibilityHasRole', 'PossibilityHasRoleController@update');
 Route::delete('/possibilityHasRole', 'PossibilityHasRoleController@delete');
 
 Route::get('/roleHasRole', 'RoleHasRoleController@get');
+Route::post('/roleHasRole', 'RoleHasRoleController@create');
+Route::put('/roleHasRole', 'RoleHasRoleController@update');
+Route::delete('/roleHasRole', 'RoleHasRoleController@delete');
+
+Route::get('/group', 'GroupController@get');
+Route::post('/group', 'GroupController@create');
+Route::put('/group', 'GroupController@update');
+Route::delete('/group', 'GroupController@delete');

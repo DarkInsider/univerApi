@@ -53,6 +53,35 @@ class PossibilityHasRoleController extends Controller
                         ['possibility_has_roles.hidden', 0],
                     ])
                     ->get();
+
+                $tRet = [];
+                foreach ($ret as $item){
+                    $tmp = $item;
+                    if(($item->type === 'faculty') && ($item->scope !== 'own')){
+                        try{
+                            $rt = DB::table('faculties')->select('faculties.title')->where('faculties.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    if(($item->type === 'department') && ($item->scope !== 'own')){
+                        try {
+                            $rt = DB::table('departments')->select('departments.title')->where('departments.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    array_push($tRet, $tmp);
+                }
             }else{
                 $ret =  DB::table('possibility_has_roles')
                     ->join('roles', 'roles.id', '=', 'possibility_has_roles.role_id')
@@ -60,8 +89,37 @@ class PossibilityHasRoleController extends Controller
                     ->select('possibility_has_roles.id', 'possibility_has_roles.type', 'possibility_has_roles.scope', 'possibility_has_roles.role_id', 'roles.title as role_title', 'possibility_has_roles.possibility_id','possibilities.title as possibility_title')->where([
                         ['possibility_has_roles.hidden', 0],
                     ])->get();
+
+                $tRet = [];
+                foreach ($ret as $item){
+                    $tmp = $item;
+                    if(($item->type === 'faculty') && ($item->scope !== 'own')){
+                        try{
+                            $rt = DB::table('faculties')->select('faculties.title')->where('faculties.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    if(($item->type === 'department') && ($item->scope !== 'own')){
+                        try {
+                            $rt = DB::table('departments')->select('departments.title')->where('departments.id', intval($item->scope))->first();
+                        }
+                        catch (Exception $e){
+                            $rt='err';
+                        }
+                        if($rt !== 'err') {
+                            $tmp->scope_title = $rt->title;
+                        }
+                    }
+                    array_push($tRet, $tmp);
+                }
             }
-            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            return response(  json_encode($tRet, JSON_UNESCAPED_UNICODE), 200);
         }else {
             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
         }
