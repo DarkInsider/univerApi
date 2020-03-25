@@ -110,7 +110,67 @@ class FacultyController extends Controller
         }
     }
 
+    public function create(Request $request)
+    {
+        //requests
+        $err = [];
+        if ($request->header('token') === null) {
+            array_push($err, 'token is required');
+        }
+        if ($request->title === null) {
+            array_push($err, 'title is required');
+        }
 
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+
+        function create_faculty($request){
+            $date = date('Y-m-d H:i:s');
+            $ret = Faculty::create(
+                [
+                    'title' => $request->title,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]
+            );
+            return $ret;
+        }
+
+
+
+        if ($user->id === 1) {  //Если суперюзер то сразу выполняем
+            $fac = create_faculty($request);
+            return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
+        } else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 2],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+                $fac = create_faculty($request);
+                return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
+
+            }else {
+                return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
+            }
+        }
+    }
 
     public function update(Request $request)
     {
@@ -246,74 +306,6 @@ class FacultyController extends Controller
         }
     }
 
-
-
-
-
-
-
-    public function create(Request $request)
-    {
-        //requests
-        $err = [];
-        if ($request->header('token') === null) {
-            array_push($err, 'token is required');
-        }
-        if ($request->title === null) {
-            array_push($err, 'title is required');
-        }
-
-        if (count($err) > 0) {
-            return response($err, 400);
-        }
-
-        $user = GetUser::get($request->header('token'));
-        if ($user === 'err') {
-            return response('server error', 500);
-        }
-        if ($user === null) {
-            return response('unauthorized', 401);
-        }
-
-
-        function create_faculty($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Faculty::create(
-                [
-                    'title' => $request->title,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
-
-
-
-        if ($user->id === 1) {  //Если суперюзер то сразу выполняем
-            $fac = create_faculty($request);
-            return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
-        } else {
-            try {
-                $ret = DB::table('possibility_has_roles')
-                    ->select()->where([
-                        ['possibility_has_roles.role_id', $user->role_id],
-                        ['possibility_has_roles.possibility_id', 2],
-                        ['possibility_has_roles.hidden', 0]
-                    ])->get();
-            } catch (Exception $e) {
-                return response($e, 500);
-            }
-            if (count($ret) > 0) {
-                    $fac = create_faculty($request);
-                    return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
-
-            }else {
-                return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
-            }
-        }
-    }
-
 	public function delete(Request $request)
     {
         //requests
@@ -353,11 +345,15 @@ class FacultyController extends Controller
 
         function delete_faculty($request)
         {
+            $date = date('Y-m-d H:i:s');
             DB::beginTransaction();
             try {
                 DB::table('faculties')
                     ->where('id', $request->id)
-                    ->update(['hidden' => true]);
+                    ->update([
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]);
             } catch (Exception $e) {
                 DB::rollback();
                 return 'err';
@@ -365,7 +361,10 @@ class FacultyController extends Controller
             try {
                 DB::table('departments')
                     ->where('faculty_id', $request->id)
-                    ->update(['hidden' => true]);
+                    ->update([
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]);
             } catch (Exception $e) {
                 DB::rollback();
                 return 'err';
@@ -374,7 +373,10 @@ class FacultyController extends Controller
                 DB::table('users')
                     ->join('departments', 'departments.id', '=', 'users.department_id')
                     ->where('departments.faculty_id', $request->id)
-                    ->update(['users.hidden' => true]);
+                    ->update([
+                        'users.hidden' => true,
+                        'users.updated_at' => $date,
+                    ]);
             } catch (Exception $e) {
                 DB::rollback();
                 return 'err';
@@ -383,7 +385,10 @@ class FacultyController extends Controller
                 DB::table('groups')
                     ->join('departments', 'departments.id', '=', 'groups.department_id')
                     ->where('departments.faculty_id', $request->id)
-                    ->update(['groups.hidden' => true]);
+                    ->update([
+                        'groups.hidden' => true,
+                        'groups.updated_at' => $date,
+                    ]);
             } catch (Exception $e) {
                 DB::rollback();
                 return 'err';
