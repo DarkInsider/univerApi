@@ -166,7 +166,10 @@ class UserController extends Controller
         }else{
             try{
                 $role = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -181,7 +184,10 @@ class UserController extends Controller
         }else{
             try{
                 $role = DB::table('departments')
-                    ->select('departments.id')->where('departments.id', $request->department_id)->first();
+                    ->select('departments.id')->where([
+                        ['departments.id', $request->department_id],
+                        ['departments.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -243,12 +249,13 @@ class UserController extends Controller
                     ['departments.id', $request->department_id],
                 ])->first();
 
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
                 foreach ($ret as $item){
                     if($item->type === 'faculty'){
                         if($item->scope === 'own'){
-                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                ['departments.id', $user->department_id],
-                            ])->first();
+
                             if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
                                $flag = true;
                                break;
@@ -330,6 +337,8 @@ class UserController extends Controller
                         ->join('roles', 'roles.id', '=', 'users.role_id')
                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                             ['users.hidden', 0],
+                            ['roles.hidden', 0],
+                            ['departments.hidden', 0],
                             ['users.department_id', $request->department_id],
                         ])->get();
                 }
@@ -343,6 +352,8 @@ class UserController extends Controller
                         ->join('roles', 'roles.id', '=', 'users.role_id')
                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                             ['users.hidden', 0],
+                            ['roles.hidden', 0],
+                            ['departments.hidden', 0],
                         ])->get();
                 }
                 catch (Exception $e){
@@ -372,18 +383,20 @@ class UserController extends Controller
                     $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
                         ['departments.id', $request->department_id],
                     ])->first();
+                    $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                        ['departments.id', $user->department_id],
+                    ])->first();
                     foreach ($ret as $item){
                         if($item->type === 'faculty'){
                             if($item->scope === 'own'){
-                                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                    ['departments.id', $user->department_id],
-                                ])->first();
                                 if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
                                     $ret =  DB::table('users')
                                         ->join('departments', 'departments.id', '=', 'users.department_id')
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['departments.faculty_id', intval($facultyReq->faculty_id)],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', $request->department_id]
@@ -398,6 +411,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['departments.faculty_id', intval($facultyReq->faculty_id)],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', $request->department_id]
@@ -414,6 +429,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', $request->department_id]
                                         ])->get();
@@ -427,6 +444,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', $request->department_id]
                                         ])->get();
@@ -437,17 +456,19 @@ class UserController extends Controller
                         }
                     }
                 }else{
+                    $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                       ['departments.id', $user->department_id],
+                    ])->first();
                     foreach ($ret as $item){
                         if($item->type === 'faculty'){
                             if($item->scope === 'own'){
-                                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                    ['departments.id', $user->department_id],
-                                ])->first();
                                     $ret =  DB::table('users')
                                         ->join('departments', 'departments.id', '=', 'users.department_id')
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['departments.faculty_id', intval($faculty->faculty_id)],
                                             ['users.role_id', intval($item->role_id_has)],
                                         ])->get();
@@ -459,6 +480,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['departments.faculty_id', intval($item->scope)],
                                             ['users.role_id', intval($item->role_id_has)],
                                         ])->get();
@@ -472,6 +495,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', intval($user->department_id)]
                                         ])->get();
@@ -483,6 +508,8 @@ class UserController extends Controller
                                         ->join('roles', 'roles.id', '=', 'users.role_id')
                                         ->select('users.id', 'users.name', 'users.login', 'users.department_id', 'departments.title as department_title', 'users.role_id', 'roles.title as role_title')->where([
                                             ['users.hidden', 0],
+                                            ['roles.hidden', 0],
+                                            ['departments.hidden', 0],
                                             ['users.role_id', intval($item->role_id_has)],
                                             ['users.department_id', intval($item->scope)]
                                         ])->get();
