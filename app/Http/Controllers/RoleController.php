@@ -105,7 +105,10 @@ class RoleController extends Controller
         if($request->role_id !== null){
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -263,7 +266,10 @@ class RoleController extends Controller
         }else{
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -334,7 +340,10 @@ class RoleController extends Controller
         }else{
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -359,6 +368,7 @@ class RoleController extends Controller
 
         function delete_role($request){
             $date = date('Y-m-d H:i:s');
+            DB::beginTransaction();
             try {
                 DB::table('roles')
                     ->where('roles.id', $request->role_id)
@@ -367,6 +377,7 @@ class RoleController extends Controller
                         'updated_at' => $date,
                     ]);
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
             try {
@@ -377,6 +388,7 @@ class RoleController extends Controller
                         'updated_at' => $date,
                     ]);
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
             try {
@@ -387,9 +399,25 @@ class RoleController extends Controller
                         'updated_at' => $date,
                     ]);
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
-            return 'deleted';
+
+            try {
+                DB::table('users')
+                    ->where('users.role_id', $request->role_id)
+                    ->update([
+                        'role_id' => 6,
+                        'updated_at' => $date,
+                    ]);
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+
+
+            DB::commit();
+            return 'Delete OK';
         }
 
         if ($user->id === 1) {  //Если суперюзер то сразу выполняем
