@@ -12,6 +12,48 @@ use Illuminate\Support\Facades\DB;
 
 class PossibilityHasRoleController extends Controller
 {
+
+    public function getPosByToken(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if($user === 'err'){
+            return response('server error', 500);
+        }
+        if($user === null){
+            return response('unauthorized', 401);
+        }
+        if($user->id === 1) {
+            return response(  json_encode('SUPERUSER', JSON_UNESCAPED_UNICODE), 200);
+        }else{
+            try{
+                $ret =  DB::table('possibility_has_roles')
+                    ->join('roles', 'roles.id', '=', 'possibility_has_roles.role_id')
+                    ->join('possibilities', 'possibilities.id', '=', 'possibility_has_roles.possibility_id')
+                    ->select('possibility_has_roles.id', 'possibility_has_roles.type', 'possibility_has_roles.scope', 'possibility_has_roles.role_id', 'roles.title as role_title', 'possibility_has_roles.possibility_id','possibilities.title as possibility_title')
+                    ->where([
+                        ['roles.id', $user->role_id],
+                        ['possibility_has_roles.hidden', 0],
+                        ['possibilities.hidden', 0],
+                        ['roles.hidden', 0],
+                    ])
+                    ->get();
+            }catch (Exception $e){
+                return response($e, 500);
+            }
+
+            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+        }
+    }
+
+
     public function get(Request $request){
         //requests
         $err=[];

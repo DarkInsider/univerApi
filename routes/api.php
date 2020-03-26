@@ -59,6 +59,9 @@ Route::post('/possibilityHasRole', 'PossibilityHasRoleController@create');
 Route::put('/possibilityHasRole', 'PossibilityHasRoleController@update');
 Route::delete('/possibilityHasRole', 'PossibilityHasRoleController@delete');
 
+Route::get('/possibilityHasRole/getByToken', 'PossibilityHasRoleController@getPosByToken');
+
+
 Route::get('/roleHasRole', 'RoleHasRoleController@get');
 Route::post('/roleHasRole', 'RoleHasRoleController@create');
 Route::put('/roleHasRole', 'RoleHasRoleController@update');

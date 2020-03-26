@@ -539,9 +539,9 @@ class UserController extends Controller
         if ($request->name === null) {
             array_push($err, 'name is required');
         }
-        if ($request->password === null) {
-            array_push($err, 'password is required');
-        }
+//        if ($request->password === null) {
+//            array_push($err, 'password is required');
+//        }
         if ($request->user_id === null) {
             array_push($err, 'user_id is required');
 
@@ -623,18 +623,35 @@ class UserController extends Controller
         function update_user($request){
             $date = date('Y-m-d H:i:s');
             try {
-                DB::table('users')
-                    ->where('users.id', $request->user_id)
-                    ->update(
-                        [
-                            'name' => $request->name,
-                            'login' => $request->login,
-                            'password' => md5($request->password),
-                            'role_id' => $request->role_id,
-                            'department_id' => $request->department_id,
-                            'updated_at' => $date,
-                        ]
-                    );
+
+
+                if($request->password !== null){
+                    DB::table('users')
+                        ->where('users.id', $request->user_id)
+                        ->update(
+                            [
+                                'name' => $request->name,
+                                'login' => $request->login,
+                                'password' => md5($request->password),
+                                'role_id' => $request->role_id,
+                                'department_id' => $request->department_id,
+                                'updated_at' => $date,
+                            ]
+                        );
+                }else{
+                    DB::table('users')
+                        ->where('users.id', $request->user_id)
+                        ->update(
+                            [
+                                'name' => $request->name,
+                                'login' => $request->login,
+                                'role_id' => $request->role_id,
+                                'department_id' => $request->department_id,
+                                'updated_at' => $date,
+                            ]
+                        );
+                }
+
             } catch (Exception $e) {
                 return 'err';
             }
