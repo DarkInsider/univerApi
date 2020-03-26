@@ -22,7 +22,10 @@ class RoleHasRoleController extends Controller
         if($request->role_id !== null){
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -50,6 +53,7 @@ class RoleHasRoleController extends Controller
                     ->select('role_has_roles.id', 'role_has_roles.role_id',  'role_has_roles.role_id_has', 'roles.title as role_has_title')
                     ->where([
                         ['role_has_roles.hidden', 0],
+                        ['roles.hidden', 0],
                         ['role_has_roles.role_id', $request->role_id]
                     ])
                     ->get();
@@ -59,6 +63,7 @@ class RoleHasRoleController extends Controller
                     ->select('role_has_roles.id', 'role_has_roles.role_id',  'role_has_roles.role_id_has', 'roles.title as role_has_title')
                     ->where([
                         ['role_has_roles.hidden', 0],
+                        ['roles.hidden', 0],
                     ])->get();
             }
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
@@ -77,7 +82,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -91,7 +99,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id_has)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id_has],
+                        ['roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -138,7 +149,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('role_has_roles')
-                    ->select('role_has_roles.id')->where('role_has_roles.id', $request->role_has_role_id)->first();
+                    ->select('role_has_roles.id')->where([
+                        ['role_has_roles.id', $request->role_has_role_id],
+                        ['role_has_roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -152,7 +166,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id],
+                        ['roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -166,7 +183,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('roles')
-                    ->select('roles.id')->where('roles.id', $request->role_id_has)->first();
+                    ->select('roles.id')->where([
+                        ['roles.id', $request->role_id_has],
+                        ['roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -223,7 +243,10 @@ class RoleHasRoleController extends Controller
         }else {
             try{
                 $ret = DB::table('role_has_roles')
-                    ->select('role_has_roles.id')->where('role_has_roles.id', $request->role_has_role_id)->first();
+                    ->select('role_has_roles.id')->where([
+                        ['role_has_roles.id', $request->role_has_role_id],
+                        ['role_has_roles.hidden', 0],
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
