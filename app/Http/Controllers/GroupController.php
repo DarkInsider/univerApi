@@ -86,13 +86,12 @@ class GroupController extends Controller
                 $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
                     ['departments.id', $request->department_id],
                 ])->first();
-
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
                 foreach ($ret as $item){
                     if($item->type === 'faculty'){
                         if($item->scope === 'own'){
-                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                ['departments.id', $user->department_id],
-                            ])->first();
                             if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
                                 $flag = true;
                                 break;
@@ -142,7 +141,10 @@ class GroupController extends Controller
         if($request->department_id !== null){
             try{
                 $ret = DB::table('departments')
-                    ->select('departments.id')->where('departments.id', $request->department_id)->first();
+                    ->select('departments.id')->where([
+                        ['departments.id', $request->department_id],
+                        ['departments.hidden', 0]
+                    ])->first();
             }
             catch (Exception $e){
                 return response($e, 500);
@@ -171,6 +173,7 @@ class GroupController extends Controller
                         ->join('departments', 'departments.id', '=', 'groups.department_id')
                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                             ['groups.hidden', 0],
+                            ['departments.hidden', 0],
                             ['groups.department_id', $request->department_id],
                         ])->get();
                 }
@@ -183,6 +186,7 @@ class GroupController extends Controller
                         ->join('departments', 'departments.id', '=', 'groups.department_id')
                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                             ['groups.hidden', 0],
+                            ['departments.hidden', 0],
                         ])->get();
                 }
                 catch (Exception $e){
@@ -223,6 +227,7 @@ class GroupController extends Controller
                                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                             ['groups.department_id', $request->department_id],
                                             ['departments.faculty_id', intval($faculty->faculty_id)],
+                                            ['departments.hidden', 0],
                                             ['groups.hidden', 0],
                                         ])->get();
                                     array_push($groups, $ret);
@@ -234,6 +239,7 @@ class GroupController extends Controller
                                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                             ['groups.department_id', $request->department_id],
                                             ['departments.faculty_id', intval($item->scope)],
+                                            ['departments.hidden', 0],
                                             ['groups.hidden', 0],
                                         ])->get();
                                     array_push($groups, $ret);
@@ -246,6 +252,7 @@ class GroupController extends Controller
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
                                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                             ['groups.department_id', $request->department_id],
+                                            ['departments.hidden', 0],
                                             ['groups.hidden', 0],
                                         ])->get();
                                     array_push($groups, $ret);
@@ -256,6 +263,7 @@ class GroupController extends Controller
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
                                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                             ['groups.department_id', $request->department_id],
+                                            ['departments.hidden', 0],
                                             ['groups.hidden', 0],
                                         ])->get();
                                     array_push($groups, $ret);
@@ -275,6 +283,7 @@ class GroupController extends Controller
                                     ->join('departments', 'departments.id', '=', 'groups.department_id')
                                     ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                         ['departments.faculty_id', intval($faculty->faculty_id)],
+                                        ['departments.hidden', 0],
                                         ['groups.hidden', 0],
                                     ])->get();
                                 array_push($groups, $ret);
@@ -284,6 +293,7 @@ class GroupController extends Controller
                                     ->join('departments', 'departments.id', '=', 'groups.department_id')
                                     ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                         ['departments.faculty_id', intval($item->scope)],
+                                        ['departments.hidden', 0],
                                         ['groups.hidden', 0],
                                     ])->get();
                                 array_push($groups, $ret);
@@ -294,6 +304,7 @@ class GroupController extends Controller
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
                                         ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                             ['groups.department_id', intval($user->department_id)],
+                                            ['departments.hidden', 0],
                                             ['groups.hidden', 0],
                                         ])->get();
                                     array_push($groups, $ret);
@@ -302,6 +313,7 @@ class GroupController extends Controller
                                     ->join('departments', 'departments.id', '=', 'groups.department_id')
                                     ->select('groups.id', 'groups.code', 'groups.department_id', 'departments.title as department_title')->where([
                                         ['groups.department_id', intval($item->scope)],
+                                        ['departments.hidden', 0],
                                         ['groups.hidden', 0],
                                     ])->get();
                                 array_push($groups, $ret);
@@ -433,13 +445,14 @@ class GroupController extends Controller
                 $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
                     ['departments.id', $request->department_id],
                 ])->first();
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
 
                 foreach ($ret as $item){
                     if($item->type === 'faculty'){
                         if($item->scope === 'own'){
-                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                ['departments.id', $user->department_id],
-                            ])->first();
+
                             if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
                                 $flagTo = true;
                             }
@@ -578,12 +591,14 @@ class GroupController extends Controller
                 $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
                     ['departments.id', $group->department_id],
                 ])->first();
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
+
                 foreach ($ret as $item){
                     if($item->type === 'faculty'){
                         if($item->scope === 'own'){
-                            $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-                                ['departments.id', $user->department_id],
-                            ])->first();
+
                             if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
                                 $flag = true;
                                 break;
