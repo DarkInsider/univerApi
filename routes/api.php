@@ -71,3 +71,9 @@ Route::get('/group', 'GroupController@get');
 Route::post('/group', 'GroupController@create');
 Route::put('/group', 'GroupController@update');
 Route::delete('/group', 'GroupController@delete');
+
+Route::get('/plan', 'PlanController@get');
+Route::post('/plan', 'PlanController@create');
+Route::put('/plan', 'PlanController@update');
+
+Route::post('/import', 'PlanController@import');
