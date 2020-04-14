@@ -548,6 +548,7 @@ class GroupController extends Controller
 
         function delete_group($request){
             $date = date('Y-m-d H:i:s');
+            DB::beginTransaction();
             try {
                 DB::table('groups')
                     ->where('groups.id', $request->group_id)
@@ -558,8 +559,24 @@ class GroupController extends Controller
                         ]
                     );
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
+            try {
+                DB::table('plans')
+                    ->where('plans.group_id', $request->group_id)
+                    ->update(
+                        [
+                            'hidden' => true,
+                            'updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+
+            DB::commit();
             return 'Delete OK';
         }
 

@@ -8,7 +8,8 @@ use Http\Controllers\RoleController;
 use Http\Controllers\PossibilityController;
 use Http\Controllers\PossibilityHasRoleController;
 use Http\Controllers\RoleHasRoleController;
-
+use Http\Controllers\PlanController;
+use Http\Controllers\NoteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,5 +76,9 @@ Route::delete('/group', 'GroupController@delete');
 Route::get('/plan', 'PlanController@get');
 Route::post('/plan', 'PlanController@create');
 Route::put('/plan', 'PlanController@update');
+Route::delete('/plan', 'PlanController@delete');
 
 Route::post('/import', 'PlanController@import');
+
+Route::get('/note', 'NoteController@get');
+Route::post('/note', 'NoteController@create');

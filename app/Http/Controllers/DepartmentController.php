@@ -512,6 +512,20 @@ class DepartmentController extends Controller
                 return 'err';
             }
 
+            try {
+                DB::table('plans')
+                    ->join('groups', 'groups.id', 'plans.group_id')
+                    ->where('groups.department_id', $request->department_id)
+                    ->update(
+                        [
+                            'plans.hidden' => true,
+                            'plans.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
             DB::commit();
             return 'Delete OK';
         }

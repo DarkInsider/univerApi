@@ -528,140 +528,137 @@ class PlanController extends Controller
 
     public function delete(Request $request)
     {
-//        //requests
-//        $err = [];
-//        if ($request->header('token') === null) {
-//            array_push($err, 'token is required');
-//        }
-//        if($request->plan_id === null){
-//            array_push($err, 'plan_id is required');
-//
-//        }else {
-//            try{
-//                $ret = DB::table('plans')
-//                    ->select('plans.id')->where([
-//                        ['plans.id', $request->plan_id],
-//                        ['plans.hidden', 0]
-//                    ])->first();
-//            }
-//            catch (Exception $e){
-//                return response($e, 500);
-//            }
-//            if($ret === null){
-//                array_push($err, 'plan must exist');
-//            }
-//        }
-//        if(count($err) > 0){
-//            return response($err, 400);
-//        }
-//
-//
-//        $user = GetUser::get($request->header('token'));
-//        if ($user === 'err') {
-//            return response('server error', 500);
-//        }
-//        if ($user === null) {
-//            return response('unauthorized', 401);
-//        }
-//
-//
-//
-//        function delete_plan($request){
-//            $date = date('Y-m-d H:i:s');
-//            try {
-//                DB::table('plans')
-//                    ->where('plans.id', $request->plan_id)
-//                    ->update(
-//                        [
-//                            'hidden' => true,
-//                            'updated_at' => $date,
-//                        ]
-//                    );
-//            } catch (Exception $e) {
-//                return 'err';
-//            }
-//            return 'Delete OK';
-//        }
-//
-//        if($user->id === 1){  //Если суперюзер то сразу выполняем
-//            $ret = delete_plan($request);
-//            if($ret === 'err'){
-//                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
-//            }else{
-//                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
-//            }
-//        }else {
-//            try {
-//                $ret = DB::table('possibility_has_roles')
-//                    ->select()->where([
-//                        ['possibility_has_roles.role_id', $user->role_id],
-//                        ['possibility_has_roles.possibility_id', 32],
-//                        ['possibility_has_roles.hidden', 0]
-//                    ])->get();
-//            } catch (Exception $e) {
-//                return response($e, 500);
-//            }
-//            if (count($ret) > 0) {
-//
-//                $flag= false;
-//
-//                $group = DB::table('groups')
-//                    ->select('groups.id', 'groups.code', 'groups.department_id')->where('groups.id', $request->group_id)->first();
-//
-//                $facultyReq = DB::table('departments')->select('departments.faculty_id')->where([
-//                    ['departments.id', $group->department_id],
-//                ])->first();
-//                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
-//                    ['departments.id', $user->department_id],
-//                ])->first();
-//
-//                foreach ($ret as $item){
-//                    if($item->type === 'faculty'){
-//                        if($item->scope === 'own'){
-//
-//                            if(intval($faculty->faculty_id) === intval($facultyReq->faculty_id)){
-//                                $flag = true;
-//                                break;
-//                            }
-//
-//                        }else {
-//                            if(intval($item->scope) === intval($facultyReq->faculty_id)){
-//                                $flag = true;
-//                                break;
-//                            }
-//
-//                        }
-//                    }else if($item->type === 'department'){
-//                        if($item->scope === 'own'){
-//                            if(intval($user->department_id) === intval($group->department_id)){
-//                                $flag = true;
-//                                break;
-//                            }
-//
-//                        }else {
-//                            if(intval($item->scope)  === intval($group->department_id)){
-//                                $flag = true;
-//                                break;
-//                            }
-//
-//                        }
-//                    }
-//                }
-//                if($flag){
-//                    $ret = delete_group($request);
-//                    if($ret === 'err'){
-//                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
-//                    }else{
-//                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
-//                    }
-//                }else{
-//                    return response('forbidden', 403);
-//                }
-//
-//            }else{
-//                return response('forbidden', 403);
-//            }
-//        }
+        //requests
+        $err = [];
+        if ($request->header('token') === null) {
+            array_push($err, 'token is required');
+        }
+        if($request->plan_id === null){
+            array_push($err, 'plan_id is required');
+
+        }else {
+            try{
+                $ret = DB::table('plans')
+                    ->select('plans.id')->where([
+                        ['plans.id', $request->plan_id],
+                        ['plans.hidden', 0]
+                    ])->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'plan must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+
+
+        function delete_plan($request){
+            $date = date('Y-m-d H:i:s');
+            try {
+                DB::table('plans')
+                    ->where('plans.id', $request->plan_id)
+                    ->update(
+                        [
+                            'hidden' => true,
+                            'updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                return 'err';
+            }
+            return 'Delete OK';
+        }
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = delete_plan($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+        }else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 32],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+
+                $flag= false;
+
+                $plan =  DB::table('plans')
+                    ->join('groups', 'groups.id', 'plans.group_id')
+                    ->join('departments', 'departments.id', 'groups.department_id')
+                    ->select('plans.id',  'plans.group_id', 'groups.department_id', 'departments.faculty_id')->where('plans.id', $request->plan_id)->first();
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
+                foreach ($ret as $item){
+                    if($item->type === 'faculty'){
+                        if($item->scope === 'own'){
+
+                            if(intval($faculty->faculty_id) === intval($plan->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+
+                        }else {
+                            if(intval($item->scope) === intval($plan->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+
+                        }
+                    }else if($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            if(intval($user->department_id) === intval($plan->department_id)){
+                                $flag = true;
+                                break;
+                            }
+
+                        }else {
+                            if(intval($item->scope)  === intval($plan->department_id)){
+                                $flag = true;
+                                break;
+                            }
+
+                        }
+                    }
+                }
+                if($flag){
+                    $ret = delete_plan($request);
+                    if($ret === 'err'){
+                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+                    }else{
+                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                    }
+                }else{
+                    return response('forbidden', 403);
+                }
+
+            }else{
+                return response('forbidden', 403);
+            }
+        }
     }
 
     public function import(Request $request){

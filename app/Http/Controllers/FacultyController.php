@@ -394,7 +394,21 @@ class FacultyController extends Controller
                 return 'err';
             }
 
-
+            try {
+                DB::table('plans')
+                    ->join('groups', 'groups.id', 'plans.group_id')
+                    ->join('departments', 'departments.id', '=', 'groups.department_id')
+                    ->where('departments.faculty_id', $request->id)
+                    ->update(
+                        [
+                            'plans.hidden' => true,
+                            'plans.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
             DB::commit();
             return 'Delete OK';

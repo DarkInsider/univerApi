@@ -33,7 +33,7 @@ class CreatePossibilityHasRolesTable extends Migration
             ['id' => 6, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 7],
             ['id' => 7, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 8],
 
-            ['id' => 61, 'type' => 'role', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 9],
+            ['id' => 69, 'type' => 'role', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 9],
 
             ['id' => 8, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 13],
             ['id' => 9, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 14],
@@ -64,6 +64,11 @@ class CreatePossibilityHasRolesTable extends Migration
             ['id' => 29, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 34],
             ['id' => 30, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 35],
             ['id' => 31, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 36],
+
+            ['id' => 61, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 41],
+            ['id' => 62, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 42],
+            ['id' => 63, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 43],
+            ['id' => 64, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 44],
 
 
             ['id' => 32, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 1],
@@ -103,7 +108,10 @@ class CreatePossibilityHasRolesTable extends Migration
             ['id' => 59, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 35],
             ['id' => 60, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 36],
 
-
+            ['id' => 65, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 41],
+            ['id' => 66, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 42],
+            ['id' => 67, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 43],
+            ['id' => 68, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 44],
         ]);
     }
 
