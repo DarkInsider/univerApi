@@ -575,6 +575,33 @@ class GroupController extends Controller
                 DB::rollback();
                 return 'err';
             }
+            try {
+                DB::table('notes')
+                    ->join('plans', 'plans.id', '=', 'notes.plan_id')
+                    ->where('plans.group_id', $request->group_id)
+                    ->update(
+                        [
+                            'notes.hidden' => true,
+                            'notes.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            try {
+                DB::table('students')
+                    ->where('students.group_id', $request->group_id)
+                    ->update(
+                        [
+                            'students.hidden' => true,
+                            'students.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
             DB::commit();
             return 'Delete OK';

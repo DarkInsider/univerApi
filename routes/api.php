@@ -74,11 +74,21 @@ Route::put('/group', 'GroupController@update');
 Route::delete('/group', 'GroupController@delete');
 
 Route::get('/plan', 'PlanController@get');
+Route::get('/plan/{id}', 'PlanController@getByID');
 Route::post('/plan', 'PlanController@create');
 Route::put('/plan', 'PlanController@update');
 Route::delete('/plan', 'PlanController@delete');
 
-Route::post('/import', 'PlanController@import');
+Route::post('/planImport', 'PlanController@import');
 
 Route::get('/note', 'NoteController@get');
 Route::post('/note', 'NoteController@create');
+Route::put('/note', 'NoteController@update');
+Route::delete('/note', 'NoteController@delete');
+
+Route::get('/student', 'StudentController@get');
+Route::post('/student', 'StudentController@create');
+Route::put('/student', 'StudentController@update');
+Route::delete('/student', 'StudentController@delete');
+
+Route::post('/studentsImport', 'StudentController@import');

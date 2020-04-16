@@ -511,6 +511,20 @@ class DepartmentController extends Controller
                 DB::rollback();
                 return 'err';
             }
+            try {
+                DB::table('students')
+                    ->join('groups', 'groups.id', 'students.group_id')
+                    ->where('groups.department_id', $request->department_id)
+                    ->update(
+                        [
+                            'students.hidden' => true,
+                            'students.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
             try {
                 DB::table('plans')
@@ -526,6 +540,23 @@ class DepartmentController extends Controller
                 DB::rollback();
                 return 'err';
             }
+            try {
+                DB::table('notes')
+                    ->join('plans', 'plans.id', '=', 'notes.plan_id')
+                    ->join('groups', 'groups.id', 'plans.group_id')
+                    ->where('groups.department_id', $request->department_id)
+                    ->update(
+                        [
+                            'notes.hidden' => true,
+                            'notes.updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+
+
             DB::commit();
             return 'Delete OK';
         }
