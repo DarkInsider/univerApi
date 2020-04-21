@@ -447,6 +447,9 @@ class StudentController extends Controller
         if ($request->info === null) {
             array_push($err, 'info is required');
         }
+        if ($request->name === null) {
+            array_push($err, 'name is required');
+        }
         if ($request->user_id === null) {
             array_push($err, 'user_id is required');
         }else{
@@ -492,7 +495,7 @@ class StudentController extends Controller
 
         function update_student($request){
             $date = date('Y-m-d H:i:s');
-
+            DB::beginTransaction();
             try {
                 DB::table('students')
                     ->where('students.id', $request->student_id)
@@ -505,14 +508,30 @@ class StudentController extends Controller
                         ]
                     );
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
+             try {
+                 DB::table('users')
+                     ->where('users.id', $request->user_id)
+                     ->update(
+                         [
+                             'name' => $request->name,
+                             'updated_at' => $date,
+                         ]
+                     );
+             } catch (Exception $e) {
+                 DB::rollback();
+                 return 'err';
+             }
             try {
                 $ret = DB::table('students')
                     ->select('students.id', 'students.info', 'students.group_id', 'students.user_id')->where('students.id', $request->student_id)->first();
             } catch (Exception $e) {
+                DB::rollback();
                 return 'err';
             }
+            DB::commit();
             return $ret;
         }
 

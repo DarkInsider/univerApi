@@ -92,3 +92,14 @@ Route::put('/student', 'StudentController@update');
 Route::delete('/student', 'StudentController@delete');
 
 Route::post('/studentsImport', 'StudentController@import');
+
+Route::post('/lecturer', 'LecturerController@create');
+Route::get('/lecturer', 'LecturerController@get');
+Route::put('/lecturer', 'LecturerController@update');
+Route::delete('/lecturer', 'LecturerController@delete');
+
+Route::post('/pinLecturerToDepartment', 'LecturerController@pinLecturerToDepartment');
+Route::put('/pinLecturerToDepartment', 'LecturerController@pinUpdateLecturerToDepartment');
+Route::delete('/pinLecturerToDepartment', 'LecturerController@pinDeleteLecturerToDepartment');
+
+

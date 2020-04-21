@@ -25,7 +25,7 @@ class CreateRolesTable extends Migration
             ['id' => 2, 'title' => 'AF', 'hidden' => false],
             ['id' => 3, 'title' => 'AK', 'hidden' => false],
             ['id' => 4, 'title' => 'Student', 'hidden' => false],
-            ['id' => 5, 'title' => 'VU', 'hidden' => false],
+            ['id' => 5, 'title' => 'Lecturer', 'hidden' => false],
             ['id' => 6, 'title' => 'DefaultRole', 'hidden' => false],
         ]);
     }
