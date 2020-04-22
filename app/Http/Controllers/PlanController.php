@@ -225,11 +225,23 @@ class PlanController extends Controller
 
 
 
+    private  function create_plan($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = Plan::create(
+            [
+                'title' => $request->title,
+                'group_id' => $request->group_id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
 
 
 
 
-   public function create(Request $request){
+    public function create(Request $request){
        //requests
        $err=[];
        if($request->header('token') === null){
@@ -270,22 +282,10 @@ class PlanController extends Controller
        }
 
 
-       function create_plan($request){
-           $date = date('Y-m-d H:i:s');
-           $ret = Plan::create(
-               [
-                   'title' => $request->title,
-                   'group_id' => $request->group_id,
-                   'created_at' => $date,
-                   'updated_at' => $date,
-               ]
-           );
-           return $ret;
-       }
 
 
        if($user->id === 1){
-           $ret = create_plan($request);
+           $ret = PlanController::create_plan($request);
            return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
 
        }else{
@@ -339,7 +339,7 @@ class PlanController extends Controller
                    }
                }
                if($flag){
-                   $ret = create_plan($request);
+                   $ret = PlanController::create_plan($request);
                    return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                }else{
                    return response('forbidden', 403);
@@ -348,6 +348,30 @@ class PlanController extends Controller
                return response('forbidden', 403);
            }
        }
+   }
+
+   private function update_plan($request){
+       $date = date('Y-m-d H:i:s');
+       try {
+           DB::table('plans')
+               ->where('plans.id', $request->plan_id)
+               ->update(
+                   [
+                       'title' => $request->title,
+                       'group_id' => $request->group_id,
+                       'updated_at' => $date,
+                   ]
+               );
+       } catch (Exception $e) {
+           return 'err';
+       }
+       try {
+           $ret = DB::table('plans')
+               ->select('plans.id', 'plans.title', 'plans.group_id')->where('plans.id', $request->plan_id)->first();
+       } catch (Exception $e) {
+           return 'err';
+       }
+       return $ret;
    }
 
    public function update(Request $request){
@@ -408,32 +432,10 @@ class PlanController extends Controller
            return response('unauthorized', 401);
        }
 
-       function update_plan($request){
-           $date = date('Y-m-d H:i:s');
-           try {
-               DB::table('plans')
-                   ->where('plans.id', $request->plan_id)
-                   ->update(
-                       [
-                           'title' => $request->title,
-                           'group_id' => $request->group_id,
-                           'updated_at' => $date,
-                       ]
-                   );
-           } catch (Exception $e) {
-               return 'err';
-           }
-           try {
-               $ret = DB::table('plans')
-                   ->select('plans.id', 'plans.title', 'plans.group_id')->where('plans.id', $request->plan_id)->first();
-           } catch (Exception $e) {
-               return 'err';
-           }
-           return $ret;
-       }
+
 
        if($user->id === 1){  //Если суперюзер то сразу выполняем
-           $ret = update_plan($request);
+           $ret = PlanController::update_plan($request);
            if($ret === 'err'){
                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
            }else{
@@ -513,7 +515,7 @@ class PlanController extends Controller
 
 
                if ($flagFrom && $flagTo) {
-                   $ret = update_plan($request);
+                   $ret = PlanController::update_plan($request);
                    if ($ret === 'err') {
                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                    } else {
@@ -528,6 +530,38 @@ class PlanController extends Controller
        }
    }
 
+   private  function delete_plan($request){
+       $date = date('Y-m-d H:i:s');
+       DB::beginTransaction();
+       try {
+           DB::table('plans')
+               ->where('plans.id', $request->plan_id)
+               ->update(
+                   [
+                       'hidden' => true,
+                       'updated_at' => $date,
+                   ]
+               );
+       } catch (Exception $e) {
+           DB::rollback();
+           return 'err';
+       }
+       try {
+           DB::table('notes')
+               ->where('notes.plan_id', $request->plan_id)
+               ->update(
+                   [
+                       'hidden' => true,
+                       'updated_at' => $date,
+                   ]
+               );
+       } catch (Exception $e) {
+           DB::rollback();
+           return 'err';
+       }
+       DB::commit();
+       return 'Delete OK';
+   }
 
     public function delete(Request $request)
     {
@@ -569,41 +603,10 @@ class PlanController extends Controller
 
 
 
-        function delete_plan($request){
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('plans')
-                    ->where('plans.id', $request->plan_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('notes')
-                    ->where('notes.plan_id', $request->plan_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            DB::commit();
-            return 'Delete OK';
-        }
+
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = delete_plan($request);
+            $ret = PlanController::delete_plan($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -664,7 +667,7 @@ class PlanController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = delete_plan($request);
+                    $ret = PlanController::delete_plan($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -678,6 +681,49 @@ class PlanController extends Controller
                 return response('forbidden', 403);
             }
         }
+    }
+
+
+    private  function import_plane($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            $tmpPlan = Plan::create(
+                [
+                    'title' => $request->title,
+                    'group_id' => $request->group_id,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]
+            );
+        } catch (\Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        $array = Excel::toArray(null, request()->file('file'));
+
+        $ret = [];
+        $ret['plan']=$tmpPlan;
+        $ret['notes']=[];
+        foreach ($array[0] as $item){
+            try {
+                $tmp = Note::create(
+                    [
+                        'hours' => $item[1],
+                        'semester' => $item[0],
+                        'plan_id' => $tmpPlan->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            array_push( $ret['notes'], $tmp);
+        }
+        DB::commit();
+        return $ret;
     }
 
     public function import(Request $request){
@@ -723,39 +769,15 @@ class PlanController extends Controller
             return response('unauthorized', 401);
         }
 
-        function import_plane($request){
-            $date = date('Y-m-d H:i:s');
-            $tmpPlan = Plan::create(
-                [
-                    'title' => $request->title,
-                    'group_id' => $request->group_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            $array = Excel::toArray(null, request()->file('file'));
 
-            $ret = [];
-            $ret['plan']=$tmpPlan;
-            $ret['notes']=[];
-            foreach ($array[0] as $item){
-                $tmp = Note::create(
-                    [
-                        'hours' => $item[1],
-                        'semester' => $item[0],
-                        'plan_id' => $tmpPlan->id,
-                        'created_at' => $date,
-                        'updated_at' => $date,
-                    ]
-                );
-                array_push( $ret['notes'], $tmp);
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = PlanController::import_plane($request);
+            if($ret !== 'err'){
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }else {
+                return response('server error', 500);
             }
 
-            return $ret;
-        }
-        if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = import_plane($request);
-            return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             try {
                 $ret = DB::table('possibility_has_roles')
@@ -841,8 +863,12 @@ class PlanController extends Controller
                     }
                 }
                 if ($flag1 && $flag2) {
-                    $ret = import_plane($request);
-                    return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                    $ret = PlanController::import_plane($request);
+                    if($ret !== 'err'){
+                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                    }else {
+                        return response('server error', 500);
+                    }
                 } else {
                     return response('forbidden', 403);
                 }

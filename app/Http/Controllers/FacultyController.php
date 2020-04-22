@@ -110,6 +110,21 @@ class FacultyController extends Controller
         }
     }
 
+
+
+    private function create_faculty($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = Faculty::create(
+            [
+                'title' => $request->title,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
+
+
     public function create(Request $request)
     {
         //requests
@@ -134,22 +149,11 @@ class FacultyController extends Controller
         }
 
 
-        function create_faculty($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Faculty::create(
-                [
-                    'title' => $request->title,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
 
 
 
         if ($user->id === 1) {  //Если суперюзер то сразу выполняем
-            $fac = create_faculty($request);
+            $fac = FacultyController::create_faculty($request);
             return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
         } else {
             try {
@@ -163,7 +167,7 @@ class FacultyController extends Controller
                 return response($e, 500);
             }
             if (count($ret) > 0) {
-                $fac = create_faculty($request);
+                $fac = FacultyController::create_faculty($request);
                 return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
 
             }else {
@@ -171,6 +175,27 @@ class FacultyController extends Controller
             }
         }
     }
+
+
+    private function update_faculty($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('faculties')
+                ->where('faculties.id', $request->faculty_id)
+                ->update(['title' => $request->title, 'updated_at' => $date]);
+        } catch (Exception $e) {
+            return 'err';
+        }
+        try {
+            $fac = DB::table('faculties')
+                ->select('faculties.id', 'faculties.title')->where('faculties.id', $request->faculty_id)->first();
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return $fac;
+    }
+
+
 
     public function update(Request $request)
     {
@@ -212,28 +237,12 @@ class FacultyController extends Controller
         }
 
 
-        function update_faculty($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('faculties')
-                    ->where('faculties.id', $request->faculty_id)
-                    ->update(['title' => $request->title, 'updated_at' => $date]);
-            } catch (Exception $e) {
-                return 'err';
-            }
-            try {
-                $fac = DB::table('faculties')
-                    ->select('faculties.id', 'faculties.title')->where('faculties.id', $request->faculty_id)->first();
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return $fac;
-        }
+
 
 
 
         if ($user->id === 1) {  //Если суперюзер то сразу выполняем
-            $fac = update_faculty($request);
+            $fac = FacultyController::update_faculty($request);
             if($fac === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -291,7 +300,7 @@ class FacultyController extends Controller
                     }
                 }
                 if($flag){
-                    $fac = update_faculty($request);
+                    $fac = FacultyController::update_faculty($request);
                     if($fac === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -306,7 +315,114 @@ class FacultyController extends Controller
         }
     }
 
-	public function delete(Request $request)
+
+    private  function delete_faculty($request)
+    {
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            DB::table('faculties')
+                ->where('id', $request->id)
+                ->update([
+                    'hidden' => true,
+                    'updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('departments')
+                ->where('faculty_id', $request->id)
+                ->update([
+                    'hidden' => true,
+                    'updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('users')
+                ->join('departments', 'departments.id', '=', 'users.department_id')
+                ->where('departments.faculty_id', $request->id)
+                ->update([
+                    'users.hidden' => true,
+                    'users.updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('groups')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->where('departments.faculty_id', $request->id)
+                ->update([
+                    'groups.hidden' => true,
+                    'groups.updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        try {
+            DB::table('students')
+                ->join('groups', 'groups.id', 'students.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->where('departments.faculty_id', $request->id)
+                ->update(
+                    [
+                        'students.hidden' => true,
+                        'students.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        try {
+            DB::table('plans')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->where('departments.faculty_id', $request->id)
+                ->update(
+                    [
+                        'plans.hidden' => true,
+                        'plans.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        try {
+            DB::table('notes')
+                ->join('plans', 'plans.id', '=', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->where('departments.faculty_id', $request->id)
+                ->update(
+                    [
+                        'notes.hidden' => true,
+                        'notes.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        DB::commit();
+        return 'Delete OK';
+
+    }
+
+
+
+    public function delete(Request $request)
     {
         //requests
         $err = [];
@@ -343,113 +459,10 @@ class FacultyController extends Controller
         }
 
 
-        function delete_faculty($request)
-        {
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('faculties')
-                    ->where('id', $request->id)
-                    ->update([
-                        'hidden' => true,
-                        'updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('departments')
-                    ->where('faculty_id', $request->id)
-                    ->update([
-                        'hidden' => true,
-                        'updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('users')
-                    ->join('departments', 'departments.id', '=', 'users.department_id')
-                    ->where('departments.faculty_id', $request->id)
-                    ->update([
-                        'users.hidden' => true,
-                        'users.updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('groups')
-                    ->join('departments', 'departments.id', '=', 'groups.department_id')
-                    ->where('departments.faculty_id', $request->id)
-                    ->update([
-                        'groups.hidden' => true,
-                        'groups.updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-
-            try {
-                DB::table('students')
-                    ->join('groups', 'groups.id', 'students.group_id')
-                    ->join('departments', 'departments.id', '=', 'groups.department_id')
-                    ->where('departments.faculty_id', $request->id)
-                    ->update(
-                        [
-                            'students.hidden' => true,
-                            'students.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-
-            try {
-                DB::table('plans')
-                    ->join('groups', 'groups.id', 'plans.group_id')
-                    ->join('departments', 'departments.id', '=', 'groups.department_id')
-                    ->where('departments.faculty_id', $request->id)
-                    ->update(
-                        [
-                            'plans.hidden' => true,
-                            'plans.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-
-            try {
-                DB::table('notes')
-                    ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                    ->join('groups', 'groups.id', 'plans.group_id')
-                    ->join('departments', 'departments.id', '=', 'groups.department_id')
-                    ->where('departments.faculty_id', $request->id)
-                    ->update(
-                        [
-                            'notes.hidden' => true,
-                            'notes.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            DB::commit();
-            return 'Delete OK';
-
-        }
 
 
         if ($user->id === 1) {
-            $ret = delete_faculty($request);
+            $ret = FacultyController::delete_faculty($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -505,7 +518,7 @@ class FacultyController extends Controller
                     }
                 }
                 if ($flag) {
-                    $ret = delete_faculty($request);
+                    $ret = FacultyController::delete_faculty($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{

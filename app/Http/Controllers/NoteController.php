@@ -12,6 +12,21 @@ use App\Http\Helpers\Normalize;
 
 class NoteController extends Controller
 {
+
+    private  function create_note($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = Note::create(
+            [
+                'hours' => $request->hours,
+                'semester' => $request->semester,
+                'plan_id' => $request->plan_id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
+
     public function create(Request $request){
         //requests
         $err=[];
@@ -56,23 +71,11 @@ class NoteController extends Controller
         }
 
 
-        function create_note($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Note::create(
-                [
-                    'hours' => $request->hours,
-                    'semester' => $request->semester,
-                    'plan_id' => $request->plan_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
+
 
 
         if($user->id === 1){
-            $ret = create_note($request);
+            $ret = NoteController::create_note($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
 
         }else{
@@ -127,7 +130,7 @@ class NoteController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = create_note($request);
+                    $ret = NoteController::create_note($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -282,6 +285,35 @@ class NoteController extends Controller
         }
     }
 
+    private function update_note($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('notes')
+                ->where('notes.id', $request->note_id)
+                ->update(
+                    [
+                        'hours' => $request->hours,
+                        'semester' => $request->semester,
+                        'plan_id' => $request->plan_id,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'err';
+        }
+        try {
+            $ret = DB::table('notes')
+                ->join('plans', 'plans.id', 'notes.plan_id')
+                ->select('notes.id', 'notes.hours', 'notes.semester', 'notes.plan_id', 'plans.title as plan_title')->where([
+                    ['notes.id', $request->note_id],
+                    ['notes.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return $ret;
+    }
+
     public function update(Request $request){
         //requests
         $err=[];
@@ -343,37 +375,10 @@ class NoteController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_note($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('notes')
-                    ->where('notes.id', $request->note_id)
-                    ->update(
-                        [
-                            'hours' => $request->hours,
-                            'semester' => $request->semester,
-                            'plan_id' => $request->plan_id,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'err';
-            }
-            try {
-                $ret = DB::table('notes')
-                    ->join('plans', 'plans.id', 'notes.plan_id')
-                    ->select('notes.id', 'notes.hours', 'notes.semester', 'notes.plan_id', 'plans.title as plan_title')->where([
-                        ['notes.id', $request->note_id],
-                        ['notes.hidden', 0]
-                    ])->first();
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return $ret;
-        }
+
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = update_note($request);
+            $ret = NoteController::update_note($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -458,7 +463,7 @@ class NoteController extends Controller
 
 
                 if ($flagFrom && $flagTo) {
-                    $ret = update_note($request);
+                    $ret = NoteController::update_note($request);
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {
@@ -471,6 +476,23 @@ class NoteController extends Controller
                 return response('forbidden', 403);
             }
         }
+    }
+
+    function delete_note($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('notes')
+                ->where('notes.id', $request->note_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return 'Delete OK';
     }
 
     public function delete(Request $request)
@@ -513,25 +535,10 @@ class NoteController extends Controller
 
 
 
-        function delete_note($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('notes')
-                    ->where('notes.id', $request->note_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return 'Delete OK';
-        }
+
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = delete_note($request);
+            $ret = NoteController::delete_note($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -595,7 +602,7 @@ class NoteController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = delete_note($request);
+                    $ret =  NoteController::delete_note($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{

@@ -132,6 +132,35 @@ class StudentController extends Controller
        }
    }
 
+   private   function createStudent($request){
+       $date = date('Y-m-d H:i:s');
+       $ret = Student::create(
+           [
+               'info' => $request->info,
+               'group_id' => $request->group_id,
+               'user_id' => $request->user_id,
+               'created_at' => $date,
+               'updated_at' => $date,
+           ]
+       );
+       return $ret;
+   }
+
+   private  function create_user($request){
+       $date = date('Y-m-d H:i:s');
+       $ret = User::create(
+           [
+               'name' => $request->name,
+               'login' => $request->login,
+               'password' => md5($request->password),
+               'role_id' => $request->role_id,
+               'department_id' => $request->department_id,
+               'created_at' => $date,
+               'updated_at' => $date,
+           ]
+       );
+       return $ret;
+   }
 
     public function create(Request $request)
     {
@@ -214,40 +243,14 @@ class StudentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function createStudent($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Student::create(
-                [
-                    'info' => $request->info,
-                    'group_id' => $request->group_id,
-                    'user_id' => $request->user_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
-        function create_user($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = User::create(
-                [
-                    'name' => $request->name,
-                    'login' => $request->login,
-                    'password' => md5($request->password),
-                    'role_id' => $request->role_id,
-                    'department_id' => $request->department_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
+
+
 
 
 
         if($user->id === 1){
             if (intval($request->flag) === 1) {
-                $ret = createStudent((object)array(
+                $ret = StudentController::createStudent((object)array(
                     'info' => $request->info,
                     'group_id' => $request->group_id,
                     'user_id' => $request->user_id,
@@ -266,7 +269,7 @@ class StudentController extends Controller
                 }
 
                 try {
-                    $newUser = create_user((object)array(
+                    $newUser = StudentController::create_user((object)array(
                         'name' => $request->name,
                         'login' => $request->login,
                         'password' => md5($request->password),
@@ -278,7 +281,7 @@ class StudentController extends Controller
                     return response($e, 500);
                 }
                 try {
-                    $ret = createStudent((object)array(
+                    $ret = StudentController::createStudent((object)array(
                         'info' => $request->info,
                         'group_id' => $request->group_id,
                         'user_id' => $newUser->id,
@@ -368,7 +371,7 @@ class StudentController extends Controller
                 }
                 if($flag1 && $flag2){
                     if (intval($request->flag) === 1) {
-                        $ret = createStudent((object)array(
+                        $ret = StudentController::createStudent((object)array(
                             'info' => $request->info,
                             'group_id' => $request->group_id,
                             'user_id' => $request->user_id,
@@ -387,7 +390,7 @@ class StudentController extends Controller
                         }
 
                         try {
-                            $newUser = create_user((object)array(
+                            $newUser = StudentController::create_user((object)array(
                                 'name' => $request->name,
                                 'login' => $request->login,
                                 'password' => md5($request->password),
@@ -399,7 +402,7 @@ class StudentController extends Controller
                             return response($e, 500);
                         }
                         try {
-                            $ret = createStudent((object)array(
+                            $ret = StudentController::createStudent((object)array(
                                 'info' => $request->info,
                                 'group_id' => $request->group_id,
                                 'user_id' => $newUser->id,
@@ -420,7 +423,47 @@ class StudentController extends Controller
         }
     }
 
-
+    private  function update_student($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            DB::table('students')
+                ->where('students.id', $request->student_id)
+                ->update(
+                    [
+                        'info' => $request->info,
+                        'group_id' => $request->group_id,
+                        'user_id' => $request->user_id,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('users')
+                ->where('users.id', $request->user_id)
+                ->update(
+                    [
+                        'name' => $request->name,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            $ret = DB::table('students')
+                ->select('students.id', 'students.info', 'students.group_id', 'students.user_id')->where('students.id', $request->student_id)->first();
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        DB::commit();
+        return $ret;
+    }
 
     public function update(Request $request){
         //requests
@@ -493,50 +536,9 @@ class StudentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_student($request){
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('students')
-                    ->where('students.id', $request->student_id)
-                    ->update(
-                        [
-                            'info' => $request->info,
-                            'group_id' => $request->group_id,
-                            'user_id' => $request->user_id,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-             try {
-                 DB::table('users')
-                     ->where('users.id', $request->user_id)
-                     ->update(
-                         [
-                             'name' => $request->name,
-                             'updated_at' => $date,
-                         ]
-                     );
-             } catch (Exception $e) {
-                 DB::rollback();
-                 return 'err';
-             }
-            try {
-                $ret = DB::table('students')
-                    ->select('students.id', 'students.info', 'students.group_id', 'students.user_id')->where('students.id', $request->student_id)->first();
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            DB::commit();
-            return $ret;
-        }
 
         if($user->id === 1){
-            $ret = update_student($request);
+            $ret = StudentController::update_student($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -613,7 +615,7 @@ class StudentController extends Controller
                 }
 
                 if($flag2 && $flag1){
-                    $ret = update_student($request);
+                    $ret = StudentController::update_student($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -629,7 +631,24 @@ class StudentController extends Controller
         }
     }
 
+    function delete_student($request){
+        $date = date('Y-m-d H:i:s');
 
+        try {
+            DB::table('students')
+                ->where('students.id', $request->student_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'err';
+        }
+
+        return 'Delete OK';
+    }
 
     public function delete(Request $request){
         //requests
@@ -664,27 +683,10 @@ class StudentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function delete_student($request){
-            $date = date('Y-m-d H:i:s');
 
-            try {
-                DB::table('students')
-                    ->where('students.id', $request->student_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'err';
-            }
-
-            return 'Delete OK';
-        }
 
         if($user->id === 1){
-            $ret = delete_student($request);
+            $ret = StudentController::delete_student($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -742,7 +744,7 @@ class StudentController extends Controller
                 }
 
                 if($flag1){
-                    $ret = delete_student($request);
+                    $ret = StudentController::delete_student($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -758,6 +760,88 @@ class StudentController extends Controller
         }
     }
 
+    private function import_students($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        $array = Excel::toArray(null, request()->file('file'));
+        $ret=[];
+        try{
+            $group = DB::table('groups')
+                ->select('groups.id', 'groups.department_id')->where([
+                    ['groups.id', $request->group_id],
+                    ['groups.hidden', 0]
+                ])->first();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $loginsDublicat = [];
+        foreach ($array[0] as $item){
+            try {
+                $login = DB::table('users')
+                    ->select('users.login')->where([
+                        ['users.login', $item[1]],
+                    ])->first();
+                if($login !== null){
+                    array_push( $loginsDublicat, $login);
+                }
+            } catch (Exception $e){
+                DB::rollback();
+                return response($e, 500);
+            }
+        }
+        if(count($loginsDublicat) > 0){
+            DB::commit();
+            $response = [];
+            $response['code'] = 400;
+            $response['message'] = 'login must be uniq';
+            $response['data'] = $loginsDublicat;
+            return $response;
+        }
+
+        foreach ($array[0] as $item){
+            try{
+                $newUser = User::create(
+                    [
+                        'name' => $item[0],
+                        'login' => $item[1],
+                        'password' => md5($item[2]),
+                        'role_id' => 4,
+                        'department_id' => $group->department_id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            }
+            catch (Exception $e){
+                DB::rollback();
+                return response($e, 500);
+            }
+            try{
+                $tmp = Student::create(
+                    [
+                        'info' => $item[3],
+                        'group_id' => $request->group_id,
+                        'user_id' => $newUser->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            }
+            catch (Exception $e){
+                DB::rollback();
+                return response($e, 500);
+            }
+            array_push( $ret, $tmp);
+        }
+        DB::commit();
+        $response = [];
+        $response['code'] = 200;
+        $response['message'] = 'OK';
+        $response['data'] = $ret;
+        return $response;
+    }
 
 
     public function import(Request $request){
@@ -813,90 +897,9 @@ class StudentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function import_students($request){
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            $array = Excel::toArray(null, request()->file('file'));
-            $ret=[];
-            try{
-                $group = DB::table('groups')
-                    ->select('groups.id', 'groups.department_id')->where([
-                        ['groups.id', $request->group_id],
-                        ['groups.hidden', 0]
-                    ])->first();
-            }
-            catch (Exception $e){
-                DB::rollback();
-                return response($e, 500);
-            }
-            $loginsDublicat = [];
-            foreach ($array[0] as $item){
-                try {
-                    $login = DB::table('users')
-                        ->select('users.login')->where([
-                            ['users.login', $item[1]],
-                        ])->first();
-                    if($login !== null){
-                        array_push( $loginsDublicat, $login);
-                    }
-                } catch (Exception $e){
-                    DB::rollback();
-                    return response($e, 500);
-                }
-            }
-            if(count($loginsDublicat) > 0){
-                DB::commit();
-                $response = [];
-                $response['code'] = 400;
-                $response['message'] = 'login must be uniq';
-                $response['data'] = $loginsDublicat;
-                return $response;
-            }
 
-            foreach ($array[0] as $item){
-                try{
-                    $newUser = User::create(
-                        [
-                            'name' => $item[0],
-                            'login' => $item[1],
-                            'password' => md5($item[2]),
-                            'role_id' => 4,
-                            'department_id' => $group->department_id,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]
-                    );
-                }
-                catch (Exception $e){
-                    DB::rollback();
-                    return response($e, 500);
-                }
-                try{
-                    $tmp = Student::create(
-                        [
-                            'info' => $item[3],
-                            'group_id' => $request->group_id,
-                            'user_id' => $newUser->id,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]
-                    );
-                }
-                catch (Exception $e){
-                    DB::rollback();
-                    return response($e, 500);
-                }
-                array_push( $ret, $tmp);
-            }
-            DB::commit();
-            $response = [];
-            $response['code'] = 200;
-            $response['message'] = 'OK';
-            $response['data'] = $ret;
-            return $response;
-        }
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = import_students($request);
+            $ret = StudentController::import_students($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -975,7 +978,7 @@ class StudentController extends Controller
                     }
                 }
                 if ($flag1 && $flag2) {
-                    $ret = import_students($request);
+                    $ret = StudentController::import_students($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);

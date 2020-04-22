@@ -12,6 +12,20 @@ use App\Http\Helpers\Normalize;
 
 class GroupController extends Controller
 {
+
+    private function create_group($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = Group::create(
+            [
+                'code' => $request->code,
+                'department_id' => $request->department_id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
+
     public function create(Request $request)
     {
         //requests
@@ -52,22 +66,11 @@ class GroupController extends Controller
             return response('unauthorized', 401);
         }
 
-        function create_group($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Group::create(
-                [
-                    'code' => $request->code,
-                    'department_id' => $request->department_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
+
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = create_group($request);
+            $ret = GroupController::create_group($request);
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             try{
@@ -119,7 +122,7 @@ class GroupController extends Controller
 
 
                 if($flag){
-                    $ret = create_group($request);
+                    $ret =  GroupController::create_group($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -329,6 +332,33 @@ class GroupController extends Controller
         }
     }
 
+
+    private function update_group($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('groups')
+                ->where('groups.id', $request->group_id)
+                ->update(
+                    [
+                        'code' => $request->code,
+                        'department_id' => $request->department_id,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'err';
+        }
+        try {
+            $ret = DB::table('groups')
+                ->select('groups.id', 'groups.code', 'groups.department_id')->where('groups.id', $request->group_id)->first();
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return $ret;
+    }
+
+
+
     public function update(Request $request)
     {
         //requests
@@ -387,33 +417,10 @@ class GroupController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_group($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('groups')
-                    ->where('groups.id', $request->group_id)
-                    ->update(
-                        [
-                            'code' => $request->code,
-                            'department_id' => $request->department_id,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'err';
-            }
-            try {
-                $ret = DB::table('groups')
-                    ->select('groups.id', 'groups.code', 'groups.department_id')->where('groups.id', $request->group_id)->first();
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return $ret;
-        }
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = update_group($request);
+            $ret = GroupController::update_group($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -492,7 +499,7 @@ class GroupController extends Controller
 
 
                 if($flagFrom && $flagTo){
-                    $ret = update_group($request);
+                    $ret = GroupController::update_group($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -507,6 +514,70 @@ class GroupController extends Controller
             }
         }
     }
+
+
+    private  function delete_group($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            DB::table('groups')
+                ->where('groups.id', $request->group_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('plans')
+                ->where('plans.group_id', $request->group_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('notes')
+                ->join('plans', 'plans.id', '=', 'notes.plan_id')
+                ->where('plans.group_id', $request->group_id)
+                ->update(
+                    [
+                        'notes.hidden' => true,
+                        'notes.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('students')
+                ->where('students.group_id', $request->group_id)
+                ->update(
+                    [
+                        'students.hidden' => true,
+                        'students.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        DB::commit();
+        return 'Delete OK';
+    }
+
+
 
     public function delete(Request $request)
     {
@@ -546,69 +617,10 @@ class GroupController extends Controller
             return response('unauthorized', 401);
         }
 
-        function delete_group($request){
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('groups')
-                    ->where('groups.id', $request->group_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('plans')
-                    ->where('plans.group_id', $request->group_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('notes')
-                    ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                    ->where('plans.group_id', $request->group_id)
-                    ->update(
-                        [
-                            'notes.hidden' => true,
-                            'notes.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('students')
-                    ->where('students.group_id', $request->group_id)
-                    ->update(
-                        [
-                            'students.hidden' => true,
-                            'students.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
 
-            DB::commit();
-            return 'Delete OK';
-        }
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = delete_group($request);
+            $ret = GroupController::delete_group($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -672,7 +684,7 @@ class GroupController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = delete_group($request);
+                    $ret = GroupController::delete_group($request);
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{

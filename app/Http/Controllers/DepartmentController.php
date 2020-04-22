@@ -175,6 +175,22 @@ class DepartmentController extends Controller
         }
     }
 
+
+    private function create_department($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = Department::create(
+            [
+                'title' => $request->title,
+                'faculty_id' => $request->faculty_id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
+
+
+
     public function create(Request $request)
     {
         //requests
@@ -214,22 +230,10 @@ class DepartmentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function create_department($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = Department::create(
-                [
-                    'title' => $request->title,
-                    'faculty_id' => $request->faculty_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = create_department($request);
+            $ret = DepartmentController::create_department($request);
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             try{
@@ -264,7 +268,7 @@ class DepartmentController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = create_department($request);
+                    $ret =  DepartmentController::create_department($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -275,6 +279,30 @@ class DepartmentController extends Controller
             }
         }
     }
+
+
+    private  function update_department($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('departments')
+                ->where('departments.id', $request->department_id)
+                ->update([
+                    'title' => $request->title,
+                    'updated_at' => $date,
+                    'faculty_id' => $request->faculty_id,
+                ]);
+        } catch (Exception $e) {
+            return 'err';
+        }
+        try {
+            $dep = DB::table('departments')
+                ->select('departments.id', 'departments.title', 'departments.faculty_id')->where('departments.id', $request->department_id)->first();
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return $dep;
+    }
+
 
     public function update(Request $request)
     {
@@ -332,31 +360,10 @@ class DepartmentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_department($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('departments')
-                    ->where('departments.id', $request->department_id)
-                    ->update([
-                        'title' => $request->title,
-                        'updated_at' => $date,
-                        'faculty_id' => $request->faculty_id,
-                    ]);
-            } catch (Exception $e) {
-                return 'err';
-            }
-            try {
-                $dep = DB::table('departments')
-                    ->select('departments.id', 'departments.title', 'departments.faculty_id')->where('departments.id', $request->department_id)->first();
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return $dep;
-        }
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $dep = update_department($request);
+            $dep =  DepartmentController::update_department($request);
             if($dep === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -426,7 +433,7 @@ class DepartmentController extends Controller
                     }
                 }
                 if($flagFrom && $flagTo){
-                    $ret = update_department($request);
+                    $ret =  DepartmentController::update_department($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -436,6 +443,93 @@ class DepartmentController extends Controller
                 return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
             }
         }
+    }
+
+
+    private function delete_department($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            DB::table('departments')
+                ->where('departments.id', $request->department_id)
+                ->update([
+                    'hidden' => true,
+                    'updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('users')
+                ->where('users.department_id', $request->department_id)
+                ->update([
+                    'users.hidden' => true,
+                    'users.updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('groups')
+                ->where('groups.department_id', $request->department_id)
+                ->update([
+                    'groups.hidden' => true,
+                    'groups.updated_at' => $date,
+                ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('students')
+                ->join('groups', 'groups.id', 'students.group_id')
+                ->where('groups.department_id', $request->department_id)
+                ->update(
+                    [
+                        'students.hidden' => true,
+                        'students.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        try {
+            DB::table('plans')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->where('groups.department_id', $request->department_id)
+                ->update(
+                    [
+                        'plans.hidden' => true,
+                        'plans.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('notes')
+                ->join('plans', 'plans.id', '=', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->where('groups.department_id', $request->department_id)
+                ->update(
+                    [
+                        'notes.hidden' => true,
+                        'notes.updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        DB::commit();
+        return 'Delete OK';
     }
 
     public function delete(Request $request)
@@ -475,95 +569,11 @@ class DepartmentController extends Controller
             return response('unauthorized', 401);
         }
 
-        function delete_department($request){
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('departments')
-                    ->where('departments.id', $request->department_id)
-                    ->update([
-                        'hidden' => true,
-                        'updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('users')
-                    ->where('users.department_id', $request->department_id)
-                    ->update([
-                        'users.hidden' => true,
-                        'users.updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('groups')
-                    ->where('groups.department_id', $request->department_id)
-                    ->update([
-                        'groups.hidden' => true,
-                        'groups.updated_at' => $date,
-                    ]);
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('students')
-                    ->join('groups', 'groups.id', 'students.group_id')
-                    ->where('groups.department_id', $request->department_id)
-                    ->update(
-                        [
-                            'students.hidden' => true,
-                            'students.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
 
-            try {
-                DB::table('plans')
-                    ->join('groups', 'groups.id', 'plans.group_id')
-                    ->where('groups.department_id', $request->department_id)
-                    ->update(
-                        [
-                            'plans.hidden' => true,
-                            'plans.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-            try {
-                DB::table('notes')
-                    ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                    ->join('groups', 'groups.id', 'plans.group_id')
-                    ->where('groups.department_id', $request->department_id)
-                    ->update(
-                        [
-                            'notes.hidden' => true,
-                            'notes.updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'err';
-            }
-
-
-            DB::commit();
-            return 'Delete OK';
-        }
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = delete_department($request);
+            $ret = DepartmentController::delete_department($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -617,7 +627,7 @@ class DepartmentController extends Controller
                     }
                 }
                 if($flag){
-                    $ret = delete_department($request);
+                    $ret = DepartmentController::delete_department($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);

@@ -131,6 +131,21 @@ class UserController extends Controller
     }
 
 
+    private function create_user($request){
+        $date = date('Y-m-d H:i:s');
+        $ret = User::create(
+            [
+                'name' => $request->name,
+                'login' => $request->login,
+                'password' => md5($request->password),
+                'role_id' => $request->role_id,
+                'department_id' => $request->department_id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ]
+        );
+        return $ret;
+    }
 
     public function create(Request $request)
     {
@@ -208,25 +223,11 @@ class UserController extends Controller
             return response('unauthorized', 401);
         }
 
-        function create_user($request){
-            $date = date('Y-m-d H:i:s');
-            $ret = User::create(
-                [
-                    'name' => $request->name,
-                    'login' => $request->login,
-                    'password' => md5($request->password),
-                    'role_id' => $request->role_id,
-                    'department_id' => $request->department_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            return $ret;
-        }
+
 
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = create_user($request);
+            $ret = UserController::create_user($request);
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             try{
@@ -283,7 +284,7 @@ class UserController extends Controller
 
 
                 if($flag){
-                    $ret = create_user($request);
+                    $ret =  UserController::create_user($request);
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -529,6 +530,53 @@ class UserController extends Controller
 
     }
 
+
+
+    private function update_user($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+
+
+            if($request->password !== null){
+                DB::table('users')
+                    ->where('users.id', $request->user_id)
+                    ->update(
+                        [
+                            'name' => $request->name,
+                            'login' => $request->login,
+                            'password' => md5($request->password),
+                            'role_id' => $request->role_id,
+                            'department_id' => $request->department_id,
+                            'updated_at' => $date,
+                        ]
+                    );
+            }else{
+                DB::table('users')
+                    ->where('users.id', $request->user_id)
+                    ->update(
+                        [
+                            'name' => $request->name,
+                            'login' => $request->login,
+                            'role_id' => $request->role_id,
+                            'department_id' => $request->department_id,
+                            'updated_at' => $date,
+                        ]
+                    );
+            }
+
+        } catch (Exception $e) {
+            return 'err';
+        }
+        try {
+            $ret = DB::table('users')
+                ->select('users.id', 'users.name', 'users.login', 'users.role_id', 'users.department_id')->where('users.id', $request->user_id)->first();
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return $ret;
+    }
+
+
     public function update(Request $request)
     {
         //requests
@@ -539,9 +587,6 @@ class UserController extends Controller
         if ($request->name === null) {
             array_push($err, 'name is required');
         }
-//        if ($request->password === null) {
-//            array_push($err, 'password is required');
-//        }
         if ($request->user_id === null) {
             array_push($err, 'user_id is required');
 
@@ -620,53 +665,8 @@ class UserController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_user($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-
-
-                if($request->password !== null){
-                    DB::table('users')
-                        ->where('users.id', $request->user_id)
-                        ->update(
-                            [
-                                'name' => $request->name,
-                                'login' => $request->login,
-                                'password' => md5($request->password),
-                                'role_id' => $request->role_id,
-                                'department_id' => $request->department_id,
-                                'updated_at' => $date,
-                            ]
-                        );
-                }else{
-                    DB::table('users')
-                        ->where('users.id', $request->user_id)
-                        ->update(
-                            [
-                                'name' => $request->name,
-                                'login' => $request->login,
-                                'role_id' => $request->role_id,
-                                'department_id' => $request->department_id,
-                                'updated_at' => $date,
-                            ]
-                        );
-                }
-
-            } catch (Exception $e) {
-                return 'err';
-            }
-            try {
-                $ret = DB::table('users')
-                    ->select('users.id', 'users.name', 'users.login', 'users.role_id', 'users.department_id')->where('users.id', $request->user_id)->first();
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return $ret;
-        }
-
-
         if($user->id === 1){
-            $ret = update_user($request);
+            $ret =  UserController::update_user($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -748,7 +748,7 @@ class UserController extends Controller
                     }
                 }
                 if ($flagFrom && $flagTo) {
-                    $ret = update_user($request);
+                    $ret =  UserController::update_user($request);
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {
@@ -767,6 +767,23 @@ class UserController extends Controller
 
     }
 
+    private   function delete_user($request){
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('users')
+                ->where('users.id', $request->user_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'token' => NULL,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'err';
+        }
+        return 'Delete OK';
+    }
 
     public function delete(Request $request){
         //requests
@@ -803,26 +820,10 @@ class UserController extends Controller
             return response('unauthorized', 401);
         }
 
-        function delete_user($request){
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('users')
-                    ->where('users.id', $request->user_id)
-                    ->update(
-                        [
-                            'hidden' => true,
-                            'token' => NULL,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'err';
-            }
-            return 'Delete OK';
-        }
+
 
         if($user->id === 1){
-            $ret = delete_user($request);
+            $ret =  UserController::delete_user($request);
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
@@ -884,7 +885,7 @@ class UserController extends Controller
                 }
 
                 if ($flag) {
-                    $ret = delete_user($request);
+                    $ret =  UserController::delete_user($request);
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {

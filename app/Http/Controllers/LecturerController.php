@@ -12,6 +12,119 @@ use App\Department_has_lecturer;
 
 class LecturerController extends Controller
 {
+
+
+    private   function create_lecturer($request){
+        $date = date('Y-m-d H:i:s');
+
+        $response = [];
+
+        DB::beginTransaction();
+        if(intval($request->flag) === 0){
+            try {
+                $newUser = User::create(
+                    [
+                        'name' => $request->name,
+                        'login' => $request->login,
+                        'password' => md5($request->password),
+                        'role_id' => 5,
+                        'department_id' => $request->department_id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+            try {
+                $lecturer = Lecturer::create(
+                    [
+                        'info' => $request->info,
+                        'user_id' => $newUser->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+            try {
+                $ret = Department_has_lecturer::create(
+                    [
+                        'lecturer_id' => $lecturer->id,
+                        'department_id' => $request->department_id,
+                        'type' => $request->type
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+        }elseif (intval($request->flag) !== 0){
+            try {
+                $newUser =  DB::table('users')
+                    ->select()->where([
+                        ['users.id', $request->user_id],
+                        ['users.hidden', 0]
+                    ])->first();
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+            try {
+                $lecturer = Lecturer::create(
+                    [
+                        'info' => $request->info,
+                        'user_id' => $newUser->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+            try {
+                $ret = Department_has_lecturer::create(
+                    [
+                        'lecturer_id' => $lecturer->id,
+                        'department_id' => $newUser->department_id,
+                        'type' => $request->type
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+        }
+        DB::commit();
+        $response['code'] = 200;
+        $response['message'] = 'OK';
+        $response['data'] = $lecturer;
+        return $response;
+
+    }
+
     public function create(Request $request){
         //requests
         $err = [];
@@ -109,118 +222,9 @@ class LecturerController extends Controller
             return response('unauthorized', 401);
         }
 
-        function create_lecturer($request){
-            $date = date('Y-m-d H:i:s');
 
-            $response = [];
-
-            DB::beginTransaction();
-            if(intval($request->flag) === 0){
-                try {
-                    $newUser = User::create(
-                        [
-                            'name' => $request->name,
-                            'login' => $request->login,
-                            'password' => md5($request->password),
-                            'role_id' => 5,
-                            'department_id' => $request->department_id,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-                try {
-                    $lecturer = Lecturer::create(
-                        [
-                            'info' => $request->info,
-                            'user_id' => $newUser->id,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-                try {
-                    $ret = Department_has_lecturer::create(
-                        [
-                            'lecturer_id' => $lecturer->id,
-                            'department_id' => $request->department_id,
-                            'type' => $request->type
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-            }elseif (intval($request->flag) !== 0){
-                try {
-                    $newUser =  DB::table('users')
-                        ->select()->where([
-                            ['users.id', $request->user_id],
-                            ['users.hidden', 0]
-                        ])->first();
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-                try {
-                    $lecturer = Lecturer::create(
-                        [
-                            'info' => $request->info,
-                            'user_id' => $newUser->id,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-                try {
-                    $ret = Department_has_lecturer::create(
-                        [
-                            'lecturer_id' => $lecturer->id,
-                            'department_id' => $newUser->department_id,
-                            'type' => $request->type
-                        ]
-                    );
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    $response['code'] = 500;
-                    $response['message'] = 'Server Error';
-                    $response['data'] = $e;
-                    return $response;
-                }
-            }
-            DB::commit();
-            $response['code'] = 200;
-            $response['message'] = 'OK';
-            $response['data'] = $lecturer;
-            return $response;
-
-        }
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = create_lecturer($request);
+            $ret = LecturerController::create_lecturer($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -309,7 +313,7 @@ class LecturerController extends Controller
                     }
                 }
                 if ($flag1 && $flag2) {
-                    $ret = create_lecturer($request);
+                    $ret = LecturerController::create_lecturer($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -318,6 +322,33 @@ class LecturerController extends Controller
                 return response('forbidden', 403);
             }
         }
+    }
+
+
+    private function pin($request){
+        $date = date('Y-m-d H:i:s');
+
+        $response = [];
+        try {
+            $ret = Department_has_lecturer::create(
+                [
+                    'lecturer_id' => $request->lecturer_id,
+                    'department_id' => $request->department_id,
+                    'type' => $request->type,
+                    'updated_at' => $date,
+                    'created_ad'=> $date
+                ]
+            );
+        } catch (\Exception $e) {
+            $response['code'] = 500;
+            $response['message'] = 'Server Error';
+            $response['data'] = $e;
+            return $response;
+        }
+        $response['code'] = 200;
+        $response['message'] = 'OK';
+        $response['data'] = $ret;
+        return $response;
     }
 
     public function pinLecturerToDepartment(Request $request){
@@ -394,33 +425,9 @@ class LecturerController extends Controller
         }
 
 
-        function pin($request){
-            $date = date('Y-m-d H:i:s');
 
-            $response = [];
-            try {
-                $ret = Department_has_lecturer::create(
-                    [
-                        'lecturer_id' => $request->lecturer_id,
-                        'department_id' => $request->department_id,
-                        'type' => $request->type,
-                        'updated_at' => $date,
-                        'created_ad'=> $date
-                    ]
-                );
-            } catch (\Exception $e) {
-                $response['code'] = 500;
-                $response['message'] = 'Server Error';
-                $response['data'] = $e;
-                return $response;
-            }
-            $response['code'] = 200;
-            $response['message'] = 'OK';
-            $response['data'] = $ret;
-            return $response;
-        }
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = pin($request);
+            $ret = LecturerController::pin($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -500,7 +507,7 @@ class LecturerController extends Controller
                     }
                 }
                 if ($flag) {
-                    $ret = pin($request);
+                    $ret = LecturerController::pin($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -615,6 +622,32 @@ class LecturerController extends Controller
         }
     }
 
+
+    private function update_lecturer($request)
+    {
+        $date = date('Y-m-d H:i:s');
+        try {
+            DB::table('lecturers')
+                ->where('lecturers.id', $request->lecturer_id)
+                ->update(
+                    [
+                        'info' => $request->info,
+                        'user_id' => $request->user_id,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            return 'error';
+        }
+        try {
+            $ret = DB::table('lecturers')
+                ->select('lecturers.id', 'lecturers.info', 'lecturers.user_id')->where('lecturers.id', $request->lecturer_id)->first();
+        } catch (Exception $e) {
+            return 'error';
+        }
+        return $ret;
+    }
+
     public function update(Request $request)
     {
         //requests
@@ -670,33 +703,10 @@ class LecturerController extends Controller
             return response('unauthorized', 401);
         }
 
-        function update_lecturer($request)
-        {
-            $date = date('Y-m-d H:i:s');
-            try {
-                DB::table('lecturers')
-                    ->where('lecturers.id', $request->lecturer_id)
-                    ->update(
-                        [
-                            'info' => $request->info,
-                            'user_id' => $request->user_id,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                return 'error';
-            }
-            try {
-                $ret = DB::table('lecturers')
-                    ->select('lecturers.id', 'lecturers.info', 'lecturers.user_id')->where('lecturers.id', $request->lecturer_id)->first();
-            } catch (Exception $e) {
-                return 'error';
-            }
-            return $ret;
-        }
+
 
         if ($user->id === 1) {
-            $ret = update_lecturer($request);
+            $ret = LecturerController::update_lecturer($request);
             if($ret !== 'error'){
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }else{
@@ -778,7 +788,7 @@ class LecturerController extends Controller
                 }
 
                 if($flag2 && $flag1){
-                    $ret = update_lecturer($request);
+                    $ret =  LecturerController::update_lecturer($request);
                     if($ret === 'error'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
@@ -793,6 +803,35 @@ class LecturerController extends Controller
             }
 
         }
+    }
+
+    private  function delete_lecturer($request)
+    {
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            DB::table('lecturers')
+                ->where('lecturers.id', $request->lecturer_id)
+                ->update(
+                    [
+                        'updated_at' => $date,
+                        'hidden' => true
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'error';
+        }
+        try {
+            DB::table('department_has_lecturers')
+                ->where('department_has_lecturers.lecturer_id', $request->lecturer_id)
+                ->delete();
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'error';
+        }
+        DB::commit();
+        return 'Delete OK';
     }
 
     public function delete(Request $request){
@@ -830,37 +869,10 @@ class LecturerController extends Controller
             return response('unauthorized', 401);
         }
 
-        function delete_lecturer($request)
-        {
-            $date = date('Y-m-d H:i:s');
-            DB::beginTransaction();
-            try {
-                DB::table('lecturers')
-                    ->where('lecturers.id', $request->lecturer_id)
-                    ->update(
-                        [
-                            'updated_at' => $date,
-                            'hidden' => true
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'error';
-            }
-            try {
-                DB::table('department_has_lecturers')
-                    ->where('department_has_lecturers.lecturer_id', $request->lecturer_id)
-                    ->delete();
-            } catch (Exception $e) {
-                DB::rollback();
-                return 'error';
-            }
-            DB::commit();
-            return 'Delete OK';
-        }
+
 
         if ($user->id === 1) {
-            $ret = delete_lecturer($request);
+            $ret = LecturerController::delete_lecturer($request);
             if($ret !== 'error'){
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }else{
@@ -920,7 +932,7 @@ class LecturerController extends Controller
                     }
                 }
                 if ($flag) {
-                    $ret = delete_lecturer($request);
+                    $ret = LecturerController::delete_lecturer($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -929,6 +941,50 @@ class LecturerController extends Controller
                 return response('forbidden', 403);
             }
         }
+    }
+
+
+    private  function pinUpdate($request){
+        $date = date('Y-m-d H:i:s');
+
+        $response = [];
+        DB::beginTransaction();
+        try {
+            DB::table('department_has_lecturers')
+                ->where('department_has_lecturers.id', $request->department_has_lecturers_id)
+                ->update(
+                    [
+                        'lecturer_id' => $request->lecturer_id,
+                        'department_id' => $request->department_id,
+                        'type' => $request->type,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (Exception $e) {
+            DB::rollback();
+            $response['code'] = 500;
+            $response['message'] = 'Server Error';
+            $response['data'] = $e;
+            return $response;
+        }
+        DB::commit();
+        try {
+            $ret = DB::table('department_has_lecturers')
+                ->select('department_has_lecturers.id', 'department_has_lecturers.type', 'department_has_lecturers.lecturer_id', 'department_has_lecturers.department_id')->where([
+                    ['department_has_lecturers.id', $request->department_has_lecturers_id],
+                    ['department_has_lecturers.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            $response['code'] = 500;
+            $response['message'] = 'Server Error';
+            $response['data'] = $e;
+            return $response;
+        }
+
+        $response['code'] = 200;
+        $response['message'] = 'OK';
+        $response['data'] = $ret;
+        return $response;
     }
 
     public function pinUpdateLecturerToDepartment(Request $request){
@@ -1021,50 +1077,9 @@ class LecturerController extends Controller
         }
 
 
-        function pinUpdate($request){
-            $date = date('Y-m-d H:i:s');
 
-            $response = [];
-            DB::beginTransaction();
-            try {
-                DB::table('department_has_lecturers')
-                    ->where('department_has_lecturers.id', $request->department_has_lecturers_id)
-                    ->update(
-                        [
-                            'lecturer_id' => $request->lecturer_id,
-                            'department_id' => $request->department_id,
-                            'type' => $request->type,
-                            'updated_at' => $date,
-                        ]
-                    );
-            } catch (Exception $e) {
-                DB::rollback();
-                $response['code'] = 500;
-                $response['message'] = 'Server Error';
-                $response['data'] = $e;
-                return $response;
-            }
-            DB::commit();
-            try {
-                $ret = DB::table('department_has_lecturers')
-                    ->select('department_has_lecturers.id', 'department_has_lecturers.type', 'department_has_lecturers.lecturer_id', 'department_has_lecturers.department_id')->where([
-                        ['department_has_lecturers.id', $request->department_has_lecturers_id],
-                        ['department_has_lecturers.hidden', 0]
-                    ])->first();
-            } catch (Exception $e) {
-                $response['code'] = 500;
-                $response['message'] = 'Server Error';
-                $response['data'] = $e;
-                return $response;
-            }
-
-            $response['code'] = 200;
-            $response['message'] = 'OK';
-            $response['data'] = $ret;
-            return $response;
-        }
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = pinUpdate($request);
+            $ret = LecturerController::pinUpdate($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -1140,7 +1155,7 @@ class LecturerController extends Controller
                     }
                 }
                 if ($flag1 && $flag2) {
-                    $ret = pinUpdate($request);
+                    $ret = LecturerController::pinUpdate($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -1149,6 +1164,28 @@ class LecturerController extends Controller
                 return response('forbidden', 403);
             }
         }
+    }
+    function pinDelete($request){
+
+        $response = [];
+        DB::beginTransaction();
+        try {
+            DB::table('department_has_lecturers')
+                ->where('department_has_lecturers.id', $request->department_has_lecturers_id)
+                ->delete();
+        } catch (Exception $e) {
+            DB::rollback();
+            $response['code'] = 500;
+            $response['message'] = 'Server Error';
+            $response['data'] = $e;
+            return $response;
+        }
+        DB::commit();
+
+        $response['code'] = 200;
+        $response['message'] = 'OK';
+        $response['data'] = 'Delete OK';
+        return $response;
     }
     public function pinDeleteLecturerToDepartment(Request $request){
         //requests
@@ -1185,30 +1222,9 @@ class LecturerController extends Controller
         }
 
 
-        function pinDelete($request){
 
-            $response = [];
-            DB::beginTransaction();
-            try {
-                DB::table('department_has_lecturers')
-                    ->where('department_has_lecturers.id', $request->department_has_lecturers_id)
-                    ->delete();
-            } catch (Exception $e) {
-                DB::rollback();
-                $response['code'] = 500;
-                $response['message'] = 'Server Error';
-                $response['data'] = $e;
-                return $response;
-            }
-            DB::commit();
-
-            $response['code'] = 200;
-            $response['message'] = 'OK';
-            $response['data'] = 'Delete OK';
-            return $response;
-        }
         if($user->id === 1){  //Если суперюзер то сразу выполняем
-            $ret = pinDelete($request);
+            $ret = LecturerController::pinDelete($request);
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -1264,7 +1280,7 @@ class LecturerController extends Controller
                     }
                 }
                 if ($flag) {
-                    $ret = pinDelete($request);
+                    $ret = LecturerController::pinDelete($request);
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);

@@ -10,7 +10,7 @@ use Http\Controllers\PossibilityHasRoleController;
 use Http\Controllers\RoleHasRoleController;
 use Http\Controllers\PlanController;
 use Http\Controllers\NoteController;
-
+use Http\Controllers\SubjectController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -91,6 +91,7 @@ Route::post('/student', 'StudentController@create');
 Route::put('/student', 'StudentController@update');
 Route::delete('/student', 'StudentController@delete');
 
+Route::get('/studentsExport', 'StudentController@studentExport');
 Route::post('/studentsImport', 'StudentController@import');
 
 Route::post('/lecturer', 'LecturerController@create');
@@ -101,5 +102,9 @@ Route::delete('/lecturer', 'LecturerController@delete');
 Route::post('/pinLecturerToDepartment', 'LecturerController@pinLecturerToDepartment');
 Route::put('/pinLecturerToDepartment', 'LecturerController@pinUpdateLecturerToDepartment');
 Route::delete('/pinLecturerToDepartment', 'LecturerController@pinDeleteLecturerToDepartment');
+
+Route::post('/subject', 'SubjectController@create');
+Route::get('/subject', 'SubjectController@get');
+
 
 
