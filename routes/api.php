@@ -105,6 +105,8 @@ Route::delete('/pinLecturerToDepartment', 'LecturerController@pinDeleteLecturerT
 
 Route::post('/subject', 'SubjectController@create');
 Route::get('/subject', 'SubjectController@get');
+Route::put('/subject', 'SubjectController@update');
+Route::delete('/subject', 'SubjectController@delete');
 
-
+Route::get('/subject/{id}', 'SubjectController@getById');
 

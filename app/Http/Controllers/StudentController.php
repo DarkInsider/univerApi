@@ -6,6 +6,7 @@ use App\Student;
 use Illuminate\Http\Request;
 use App\Http\Helpers\GetUser;
 use App\Http\Helpers\Normalize;
+use App\Http\Helpers\ExportStudents;
 use App\User;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +14,103 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
+
+
+    public function studentExport(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if($request->group_id === null){
+            array_push($err, 'group_id is required');
+        } else {
+            try{
+                $ret = DB::table('groups')
+                    ->select('groups.id')->where([
+                        ['groups.id', $request->group_id],
+                        ['groups.hidden', 0]
+                    ])->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'group must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+        if($user->id === 1){
+            return Excel::download(new ExportStudents($request->group_id), 'students_'.$request->group_id.'.xlsx');
+        }else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 21],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if(count($ret)>0) {
+                $flag = false;
+                $req = DB::table('groups')
+                    ->join('departments', 'departments.id', '=', 'groups.department_id')
+                    ->select('groups.department_id', 'departments.faculty_id')->where([
+                        ['groups.id', $request->group_id],
+                        ['groups.hidden', 0]
+                    ])->first();
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
+                foreach ($ret as $item){
+                    if($item->type === 'faculty'){
+                        if($item->scope === 'own'){
+                            if(intval($faculty->faculty_id) === intval($req->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($req->faculty_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }else if($item->type === 'department'){
+                        if($item->scope === 'own'){
+                            if(intval($user->department_id) === intval($req->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }else {
+                            if(intval($item->scope) === intval($req->department_id)){
+                                $flag = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if($flag){
+                    return Excel::download(new ExportStudents($request->group_id), 'students_'.$request->group_id.'.xlsx');
+                }else{
+                    return response('forbidden', 403);
+                }
+            }  else{
+                return response('forbidden', 403);
+            }
+        }
+    }
    public function get(Request $request){
        //requests
        $err=[];
