@@ -6,7 +6,8 @@ use App\Choise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Helpers\GetUser;
-use App\Http\Helpers\Usf;
+use App\Http\Helpers\ChoiseExport;
+use Maatwebsite\Excel\Facades\Excel;
 class ChoiseController extends Controller
 {
 
@@ -53,6 +54,26 @@ class ChoiseController extends Controller
         if ($request->header('token') === null) {
             array_push($err, 'token is required');
         }
+        if ($request->student_id === null) {
+            array_push($err, 'student_id is required');
+        }else{
+            try {
+                $ret = DB::table('students')
+                    ->select('students.id')->where([
+                        ['students.id', $request->student_id],
+                        ['students.hidden', 0]
+                    ])->first();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if ($ret === null) {
+                array_push($err, 'student must exist');
+            }
+        }
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
         if ($request->subject_ids === null) {
             array_push($err, 'subject_ids is required (Array)');
         } else {
@@ -91,22 +112,7 @@ class ChoiseController extends Controller
                 array_push($err, 'subjects must exists');
             }
         }
-        if ($request->student_id === null) {
-            array_push($err, 'student_id is required');
-        }else{
-            try {
-                $ret = DB::table('students')
-                    ->select('students.id')->where([
-                        ['students.id', $request->student_id],
-                        ['students.hidden', 0]
-                    ])->first();
-            } catch (Exception $e) {
-                return response($e, 500);
-            }
-            if ($ret === null) {
-                array_push($err, 'student must exist');
-            }
-        }
+
 
         if (count($err) > 0) {
             return response($err, 400);
@@ -211,10 +217,198 @@ class ChoiseController extends Controller
         //Удалить несипользуемые предметы
     }
 
+    private function get_choises($request){
+        $response = [];
+        if(intval($request->type)  === 1){
 
+            try{
+                $ret = DB::table('choises')
+                    ->join('students', 'students.id', '=', 'choises.student_id')
+                    ->join('users', 'students.user_id', 'users.id')
+                    ->join('groups', 'students.group_id', 'groups.id')
+                    ->join('plans', 'plans.group_id', 'groups.id')
+                    ->join('notes', 'plans.id', 'notes.plan_id')
+                    ->select('students.id', 'students.group_id', 'groups.code as group_code', 'students.user_id', 'users.name as student_name', 'users.login', 'notes.hours as hours_need')
+                    ->where([
+
+                        ['plans.active', 1],
+                        ['choises.hidden', 0]
+                    ])
+                    ->whereColumn([
+                        ['notes.semester', 'students.semester']
+                    ])
+                    ->distinct()
+                    ->get();
+            }catch (Exception $e){
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+
+            foreach ($ret as $stud){
+                $sum = 0;
+                try{
+                  $ret2 = DB::table('choises')
+                      ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+                      ->select('subjects.hours', 'choises.subject_id')
+                      ->where([
+                          ['choises.student_id', $stud->id],
+                          ['choises.hidden', 0]
+                      ])
+                      ->get();
+                }catch (Exception $e){
+                    $response['code'] = 500;
+                    $response['message'] = 'Server Error';
+                    $response['data'] = $e;
+                    return $response;
+                }
+                foreach ($ret2 as $hours){
+                    $sum+=$hours->hours;
+                }
+                $stud->hours = $sum;
+            }
+            $response['code'] = 200;
+            $response['message'] = 'OK';
+            $response['data'] = $ret;
+            return $response;
+        }
+        if(intval($request->type)  === 2){
+            try{
+                $ret = DB::table('choises')
+                    ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+                    ->select('subjects.title', 'choises.subject_id')
+                    ->where([
+                        ['choises.hidden', 0]
+                    ])
+                    ->distinct()
+                    ->get();
+            }catch (Exception $e){
+                $response['code'] = 500;
+                $response['message'] = 'Server Error';
+                $response['data'] = $e;
+                return $response;
+            }
+
+            foreach ($ret as $subj){
+                try{
+                    $ret2 = DB::table('choises')
+                        ->select('choises.student_id')
+                        ->where([
+                            ['choises.subject_id', $subj->subject_id],
+                            ['choises.hidden', 0]
+                        ])
+                        ->get();
+                }catch (Exception $e){
+                    $response['code'] = 500;
+                    $response['message'] = 'Server Error';
+                    $response['data'] = $e;
+                    return $response;
+                }
+                $subj->student_count = count($ret2);
+            }
+            $response['code'] = 200;
+            $response['message'] = 'OK';
+            $response['data'] = collect($ret)->sortBy('student_count')->reverse()->toArray(); ;
+            return $response;
+        }
+        $response['code'] = 400;
+        $response['message'] = 'type is wrong';
+        $response['data'] = NULL;
+        return $response;
+
+    }
 
     public function get(Request $request){
+        //requests
+        $err = [];
+        if ($request->header('token') === null) {
+            array_push($err, 'token is required');
+        }
 
-        //Вывести списки виртуальных груп, вывести предметы по количеству студентов на них
+        if ($request->type === null) {
+            array_push($err, 'type is required (1 - students vue, 2 - subjects vue');
+        }
+
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = ChoiseController::get_choises($request);
+            return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
+        }else {
+            try{
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 37],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+
+            if(count($ret)>0 ) {
+                $ret = ChoiseController::get_choises($request);
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
+            } else {
+                return response('forbidden', 403);
+            }
+        }
+    }
+
+    public function export(Request $request){
+        //requests
+        $err = [];
+        if ($request->header('token') === null) {
+            array_push($err, 'token is required');
+        }
+
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            return Excel::download(new ChoiseExport(), 'choise.xlsx');
+        }else {
+            try{
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 37],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+
+            if(count($ret)>0 ) {
+                return Excel::download(new ChoiseExport(), 'choise.xlsx');
+            } else {
+                return response('forbidden', 403);
+            }
+        }
+
+
+
     }
 }

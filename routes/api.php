@@ -113,3 +113,4 @@ Route::get('/subject/{id}', 'SubjectController@getById');
 Route::post('/choise', 'ChoiseController@create');
 Route::get('/choise', 'ChoiseController@get');
 
+Route::get('/choiseExport', 'ChoiseController@export');
