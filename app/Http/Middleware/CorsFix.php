@@ -18,12 +18,13 @@ class CorsFix
         $handle = $next($request);
 
         if(method_exists($handle, 'header')) {
-            return $next($request)
+            return $handle
                 ->header('Access-Control-Allow-Origin', '*')
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
                 ->header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, X-Token-Auth, Authorization, token');
+        }else{
+            return $handle;
         }
 
-        return $handle;
     }
 }

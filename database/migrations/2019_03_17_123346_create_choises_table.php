@@ -15,7 +15,7 @@ class CreateChoisesTable extends Migration
     {
         Schema::create('choises', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->integer('semester');
+            $table->integer('semester')->nullable();
             $table->dateTime('date');
             $table->bigInteger('student_id')->unsigned();
             $table->foreign('student_id')->references('id')->on('students');

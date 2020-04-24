@@ -110,3 +110,6 @@ Route::delete('/subject', 'SubjectController@delete');
 
 Route::get('/subject/{id}', 'SubjectController@getById');
 
+Route::post('/choise', 'ChoiseController@create');
+Route::get('/choise', 'ChoiseController@get');
+
