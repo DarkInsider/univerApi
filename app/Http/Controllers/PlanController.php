@@ -52,7 +52,7 @@ class PlanController extends Controller
                 try {
                     $ret = DB::table('plans')
                         ->join('groups', 'groups.id', '=', 'plans.group_id')
-                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                        ->select('plans.id', 'plans.title', 'plans.group_id', 'plans.active' , 'groups.code as group_code')->where([
                             ['plans.group_id', $request->group_id],
                             ['plans.hidden', 0]
                         ])->get();
@@ -63,7 +63,7 @@ class PlanController extends Controller
                 try {
                     $ret = DB::table('plans')
                         ->join('groups', 'groups.id', '=', 'plans.group_id')
-                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                        ->select('plans.id', 'plans.title', 'plans.group_id', 'plans.active' , 'groups.code as group_code')->where([
                             ['plans.hidden', 0]
                         ])->get();
                 }catch (Exception $e){
@@ -102,7 +102,7 @@ class PlanController extends Controller
                                     $ret =  DB::table('plans')
                                         ->join('groups', 'groups.id', '=', 'plans.group_id')
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                        ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                             ['plans.group_id', $request->group_id],
                                             ['departments.faculty_id', intval($faculty->faculty_id)],
                                             ['departments.hidden', 0],
@@ -116,7 +116,7 @@ class PlanController extends Controller
                                     $ret =  DB::table('plans')
                                         ->join('groups', 'groups.id', '=', 'plans.group_id')
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                        ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                             ['plans.group_id', $request->group_id],
                                             ['departments.faculty_id', intval($item->scope)],
                                             ['departments.hidden', 0],
@@ -132,7 +132,7 @@ class PlanController extends Controller
                                     $ret =  DB::table('plans')
                                         ->join('groups', 'groups.id', '=', 'plans.group_id')
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                        ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                             ['plans.group_id', $request->group_id],
                                             ['departments.id', intval($facultyReq->department_id)],
                                             ['departments.hidden', 0],
@@ -146,7 +146,7 @@ class PlanController extends Controller
                                     $ret =  DB::table('plans')
                                         ->join('groups', 'groups.id', '=', 'plans.group_id')
                                         ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                        ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                        ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                             ['plans.group_id', $request->group_id],
                                             ['departments.id', intval($facultyReq->department_id)],
                                             ['departments.hidden', 0],
@@ -168,7 +168,7 @@ class PlanController extends Controller
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
                                     ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                    ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                    ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                         ['departments.faculty_id', intval($faculty->faculty_id)],
                                         ['departments.hidden', 0],
                                         ['plans.hidden', 0],
@@ -180,7 +180,7 @@ class PlanController extends Controller
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
                                     ->join('departments', 'departments.id', '=', 'groups.department_id')
-                                    ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                    ->select('plans.id', 'plans.title', 'plans.group_id', 'plans.active' ,'groups.code as group_code')->where([
                                         ['departments.faculty_id', intval($item->scope)],
                                         ['departments.hidden', 0],
                                         ['plans.hidden', 0],
@@ -192,7 +192,7 @@ class PlanController extends Controller
                             if($item->scope === 'own'){
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
-                                    ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                    ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                         ['departments.id', intval($user->department_id)],
                                         ['plans.hidden', 0],
                                         ['groups.hidden', 0],
@@ -201,7 +201,7 @@ class PlanController extends Controller
                             }else {
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
-                                    ->select('plans.id', 'plans.title', 'plans.group_id', 'groups.code as group_code')->where([
+                                    ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                         ['groups.department_id', intval($item->scope)],
                                         ['plans.hidden', 0],
                                         ['groups.hidden', 0],
@@ -1040,4 +1040,168 @@ class PlanController extends Controller
             }
         }
     }
+
+
+    private function set_active($request){
+        $date = date('Y-m-d H:i:s');
+        DB::beginTransaction();
+        try {
+            $plan = DB::table('plans')
+                ->select('plans.id', 'plans.group_id')->where([
+                    ['plans.id', $request->plan_id],
+                    ['plans.hidden', 0]
+                ])->first();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('plans')
+                ->where('plans.group_id', $plan->group_id)
+                ->update(
+                    [
+                        'active' => false,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (\Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try {
+            DB::table('plans')
+                ->where('plans.id',  $request->plan_id)
+                ->update(
+                    [
+                        'active' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (\Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        DB::commit();
+        return 'OK';
+    }
+
+
+    public function setActive(Request $request){
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if($request->plan_id === null){
+            array_push($err, 'plan_id is required');
+
+        }else {
+            try{
+                $ret = DB::table('plans')
+                    ->select('plans.id')->where([
+                        ['plans.id', $request->plan_id],
+                        ['plans.hidden', 0]
+                    ])->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'plan must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            $ret = PlanController::set_active($request);
+            if($ret === 'err'){
+                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+            }else{
+                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+        }else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 31],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+                $flagFrom = false;
+
+                $planOld =  DB::table('plans')
+                    ->join('groups', 'groups.id', 'plans.group_id')
+                    ->join('departments', 'departments.id', 'groups.department_id')
+                    ->select('plans.id',  'plans.group_id', 'groups.department_id', 'departments.faculty_id')->where('plans.id', $request->plan_id)->first();
+
+
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
+
+                foreach ($ret as $item) {
+                    if ($item->type === 'faculty') {
+                        if ($item->scope === 'own') {
+
+                            if (intval($faculty->faculty_id) === intval($planOld->faculty_id)) {
+                                $flagFrom = true;
+                            }
+                            continue;
+                        } else {
+                            if (intval($item->scope) === intval($planOld->faculty_id)) {
+                                $flagFrom = true;
+                            }
+                            continue;
+                        }
+                    } else if ($item->type === 'department') {
+                        if ($item->scope === 'own') {
+                            if (intval($user->department_id) === intval($planOld->department_id)) {
+                                $flagFrom = true;
+                            }
+                            continue;
+                        } else {
+                            if (intval($item->scope) === intval($planOld->department_id)) {
+                                $flagFrom = true;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
+
+                if ($flagFrom) {
+                    $ret = PlanController::set_active($request);
+                    if ($ret === 'err') {
+                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
+                    } else {
+                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                    }
+                } else {
+                    return response('forbidden', 403);
+                }
+            } else {
+                return response('forbidden', 403);
+            }
+        }
+    }
+
+
 }

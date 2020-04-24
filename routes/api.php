@@ -79,6 +79,9 @@ Route::post('/plan', 'PlanController@create');
 Route::put('/plan', 'PlanController@update');
 Route::delete('/plan', 'PlanController@delete');
 
+Route::put('/planSetActive', 'PlanController@setActive');
+
+
 Route::post('/planImport', 'PlanController@import');
 
 Route::get('/note', 'NoteController@get');
@@ -112,5 +115,6 @@ Route::get('/subject/{id}', 'SubjectController@getById');
 
 Route::post('/choise', 'ChoiseController@create');
 Route::get('/choise', 'ChoiseController@get');
+Route::delete('/choise', 'ChoiseController@subjectClear');
 
 Route::get('/choiseExport', 'ChoiseController@export');

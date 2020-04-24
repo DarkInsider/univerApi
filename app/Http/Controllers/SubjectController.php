@@ -519,6 +519,7 @@ class SubjectController extends Controller
     private function delete_subject($request){
         $date = date('Y-m-d H:i:s');
         $response = [];
+        DB::beginTransaction();
         try {
             DB::table('subjects')
                 ->where('subjects.id', $request->subject_id)
@@ -532,11 +533,30 @@ class SubjectController extends Controller
             $response['code'] = 500;
             $response['message'] = 'Server Error';
             $response['data'] = $e;
+            DB::rollback();
             return $response;
         }
+        try {
+            DB::table('choises')
+                ->where('choises.subject_id', $request->subject_id)
+                ->update(
+                    [
+                        'hidden' => true,
+                        'updated_at' => $date,
+                    ]
+                );
+        } catch (\Exception $e) {
+            $response['code'] = 500;
+            $response['message'] = 'Server Error';
+            $response['data'] = $e;
+            DB::rollback();
+            return $response;
+        }
+
         $response['code'] = 200;
         $response['message'] = 'OK';
         $response['data'] = 'Delete OK';
+        DB::commit();
         return $response;
     }
 
