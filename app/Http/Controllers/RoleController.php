@@ -95,46 +95,71 @@ class RoleController extends Controller
     private    function create_role($request, $idd){
         $date = date('Y-m-d H:i:s');
         if($idd === false){
-            $ret = Role::create(
-                [
-                    'title' => $request->title,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
+            try {
+                $ret = Role::create(
+                    [
+                        'title' => $request->title,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                return 'err';
+            }
             $tRet = [];
             $tRet['role']=$ret;
             return $tRet;
         }else {
-            $ret['role'] =  Role::create(
-                [
-                    'title' => $request->title,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]
-            );
-            $pos =  DB::table('possibility_has_roles')
-                ->select('possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id')->where([
-                    ['possibility_has_roles.role_id', $idd],
-                    ['possibility_has_roles.hidden', 0],
-                ])->get();
+            DB::beginTransaction();
+            try {
+                $ret['role'] = Role::create(
+                    [
+                        'title' => $request->title,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]
+                );
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
+            try {
+                $pos = DB::table('possibility_has_roles')
+                    ->select('possibility_has_roles.type', 'possibility_has_roles.scope', 'possibility_has_roles.possibility_id')->where([
+                        ['possibility_has_roles.role_id', $idd],
+                        ['possibility_has_roles.hidden', 0],
+                    ])->get();
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
             foreach ($pos as $possibility){
-                DB::table('possibility_has_roles')->insert([
-                    'type' => $possibility->type,
-                    'scope' => $possibility->scope,
-                    'role_id' => $ret['role']->id,
-                    'possibility_id' => $possibility->possibility_id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]);
+                try {
+                    DB::table('possibility_has_roles')->insert([
+                        'type' => $possibility->type,
+                        'scope' => $possibility->scope,
+                        'role_id' => $ret['role']->id,
+                        'possibility_id' => $possibility->possibility_id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    return 'err';
+                }
             }
-            $pos =  DB::table('possibility_has_roles')
-                ->join('possibilities', 'possibilities.id', '=', 'possibility_has_roles.possibility_id')
-                ->select('possibility_has_roles.id', 'possibility_has_roles.type','possibility_has_roles.scope','possibility_has_roles.possibility_id', 'possibilities.title as possibility_title', 'possibility_has_roles.role_id')->where([
-                    ['possibility_has_roles.role_id', $ret['role']->id],
-                    ['possibility_has_roles.hidden', 0],
-                ])->get();
+            try {
+                $pos = DB::table('possibility_has_roles')
+                    ->join('possibilities', 'possibilities.id', '=', 'possibility_has_roles.possibility_id')
+                    ->select('possibility_has_roles.id', 'possibility_has_roles.type', 'possibility_has_roles.scope', 'possibility_has_roles.possibility_id', 'possibilities.title as possibility_title', 'possibility_has_roles.role_id')->where([
+                        ['possibility_has_roles.role_id', $ret['role']->id],
+                        ['possibility_has_roles.hidden', 0],
+                    ])->get();
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
 
             $tRet = [];
@@ -145,23 +170,24 @@ class RoleController extends Controller
                         $rt = DB::table('faculties')->select('faculties.title')->where('faculties.id', intval($item->scope))->first();
                     }
                     catch (Exception $e){
-                        $rt='err';
+                        DB::rollback();
+                        return 'err';
                     }
 
-                    if($rt !== 'err') {
-                        $tmp->scope_title = $rt->title;
-                    }
+                    $tmp->scope_title = $rt->title;
+
                 }
                 if(($item->type === 'department') && ($item->scope !== 'own')){
                     try {
                         $rt = DB::table('departments')->select('departments.title')->where('departments.id', intval($item->scope))->first();
                     }
                     catch (Exception $e){
-                        $rt='err';
+                        DB::rollback();
+                        return 'err';
                     }
-                    if($rt !== 'err') {
-                        $tmp->scope_title = $rt->title;
-                    }
+
+                    $tmp->scope_title = $rt->title;
+
                 }
                 array_push($tRet, $tmp);
             }
@@ -172,30 +198,45 @@ class RoleController extends Controller
             $ret['possibilities']= $tRet;
 
 
-
-            $roleHasRole =  DB::table('role_has_roles')
-                ->select('role_has_roles.role_id_has')->where([
-                    ['role_has_roles.role_id', $idd],
-                    ['role_has_roles.hidden', 0],
-                ])->get();
-
-            foreach ($roleHasRole as $role){
-                DB::table('role_has_roles')->insert([
-                    'role_id_has' => $role->role_id_has,
-                    'role_id' => $ret['role']->id,
-                    'created_at' => $date,
-                    'updated_at' => $date,
-                ]);
+            try {
+                $roleHasRole = DB::table('role_has_roles')
+                    ->select('role_has_roles.role_id_has')->where([
+                        ['role_has_roles.role_id', $idd],
+                        ['role_has_roles.hidden', 0],
+                    ])->get();
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
             }
 
-            $roleHasRole =  DB::table('role_has_roles')
-                ->select('role_has_roles.id', 'role_has_roles.role_id','role_has_roles.role_id_has')->where([
-                    ['role_has_roles.role_id', $ret['role']->id],
-                    ['role_has_roles.hidden', 0],
-                ])->get();
+            foreach ($roleHasRole as $role){
+                try {
+                    DB::table('role_has_roles')->insert([
+                        'role_id_has' => $role->role_id_has,
+                        'role_id' => $ret['role']->id,
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ]);
+                } catch (\Exception $e) {
+                    DB::rollback();
+                    return 'err';
+                }
+            }
+
+            try {
+                $roleHasRole = DB::table('role_has_roles')
+                    ->select('role_has_roles.id', 'role_has_roles.role_id', 'role_has_roles.role_id_has')->where([
+                        ['role_has_roles.role_id', $ret['role']->id],
+                        ['role_has_roles.hidden', 0],
+                    ])->get();
+            } catch (\Exception $e) {
+                DB::rollback();
+                return 'err';
+            }
 
             $ret['roleHasRole']= $roleHasRole;
 
+            DB::commit();
             return $ret;
         }
 
@@ -246,7 +287,12 @@ class RoleController extends Controller
              }else{
                  $ret = RoleController::create_role($request, false);
              }
-             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+             if ($ret === 'err'){
+                 return response(json_encode('Server error', JSON_UNESCAPED_UNICODE), 500);
+             }else{
+                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+             }
+
 
          } else {
              return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);

@@ -113,6 +113,19 @@ class UserController extends Controller
         $err=[];
         if($request->header('token') === null){
             array_push($err, 'token is required');
+        }else {
+            try{
+                $user =   DB::table('users')
+                    ->select()
+                    ->where('token',$request->header('token'))
+                    ->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($user === null){
+                array_push($err, 'bad token');
+            }
         }
         if(count($err) > 0){
             return response($err, 400);
@@ -127,6 +140,72 @@ class UserController extends Controller
         catch (Exception $e){
             return response(  json_encode('Server error', JSON_UNESCAPED_UNICODE), 500);
         }
+
+
+
+        try {
+            $ret3 = DB::table('students')
+                ->select()->where([
+                    ['students.user_id', $user->id],
+                    ['students.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            return response($e, 500);
+        }
+        if($ret3 != null) {
+            $user->isStudent = true;
+            $user->student_id = $ret3->id;
+            try {
+                $ret2 = DB::table('groups')
+                    ->join('plans', 'groups.id', '=', 'plans.group_id')
+                    ->select('plans.id as plan_id')->where([
+                        ['groups.id', $ret3->group_id],
+                        ['plans.active', 1],
+                        ['plans.hidden', 0]
+                    ])->first();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+
+            if ($ret2 != null) {
+                    try {
+                        $tmp = DB::table('notes')
+                            ->select(DB::raw('SUM(hours) as total_hours'))->where([
+                                ['notes.plan_id', $ret2->plan_id],
+                                ['notes.semester', $ret3->semester],
+                                ['notes.hidden', 0]
+                            ])
+                            ->groupBy('semester')
+                            ->first();
+                    } catch (Exception $e) {
+                        return response($e, 500);
+                    }
+                $user->hours = $tmp->total_hours;
+
+                    try {
+                        $tmp = DB::table('choises')
+                            ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+                            ->select(DB::raw('SUM(subjects.hours) as total_hours'))->where([
+                                ['choises.student_id', $ret3->id],
+                                ['choises.hidden', 0]
+                            ])
+                            ->groupBy('choises.student_id')
+                            ->first();
+                    } catch (Exception $e) {
+                        return response($e, 500);
+                    }
+                    if ($tmp !== null) {
+                        $user->hours_selected = $tmp->total_hours;
+                    } else {
+                        $user->hours_selected = 0;
+                    }
+            } else {
+
+            }
+        }else {
+            $user->isStudent = false;
+        }
+
         return response(  json_encode($user, JSON_UNESCAPED_UNICODE), 200);
     }
 

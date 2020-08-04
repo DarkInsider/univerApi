@@ -554,6 +554,30 @@ class LecturerController extends Controller
         }
 
 
+        try {
+            $ret3 = DB::table('students')
+                ->select()->where([
+                    ['students.user_id', $user->id],
+                    ['students.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            return response($e, 500);
+        }
+        if($ret3 !== null){
+            try {
+                $ret = DB::table('lecturers')
+                    ->join('users', 'users.id', '=', 'lecturers.user_id')
+                    ->select('lecturers.id', 'lecturers.info', 'lecturers.user_id', 'users.name', 'users.login')->where([
+                        ['lecturers.hidden', 0]
+                    ])->get();
+            } catch (\Exception $e) {
+                return response($e, 500);
+            }
+            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+        }
+
+
+
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             if($request->department_id !== null){
                 try {
@@ -1171,7 +1195,10 @@ class LecturerController extends Controller
         DB::beginTransaction();
         try {
             DB::table('department_has_lecturers')
-                ->where('department_has_lecturers.id', $request->department_has_lecturers_id)
+                ->where([
+                    ['department_has_lecturers.department_id', $request->department_id],
+                    ['department_has_lecturers.lecturer_id', $request->lecturer_id],
+                ])
                 ->delete();
         } catch (Exception $e) {
             DB::rollback();
@@ -1193,20 +1220,36 @@ class LecturerController extends Controller
         if ($request->header('token') === null) {
             array_push($err, 'token is required');
         }
-        if ($request->department_has_lecturers_id === null) {
-            array_push($err, 'department_has_lecturers_id is required');
+        if ($request->department_id === null) {
+            array_push($err, 'department_id is required');
         } else {
             try {
-                $ret = DB::table('department_has_lecturers')
-                    ->select('department_has_lecturers.id')->where([
-                        ['department_has_lecturers.id', $request->department_has_lecturers_id],
-                        ['department_has_lecturers.hidden', 0]
+                $ret = DB::table('departments')
+                    ->select('departments.id')->where([
+                        ['departments.id', $request->department_id],
+                        ['departments.hidden', 0]
                     ])->first();
             } catch (Exception $e) {
                 return response($e, 500);
             }
             if ($ret === null) {
-                array_push($err, 'department_has_lecturer must exist');
+                array_push($err, 'department must exist');
+            }
+        }
+        if ($request->lecturer_id === null) {
+            array_push($err, 'lecturer_id is required');
+        } else {
+            try {
+                $ret = DB::table('lecturers')
+                    ->select('lecturers.id')->where([
+                        ['lecturers.id', $request->lecturer_id],
+                        ['lecturers.hidden', 0]
+                    ])->first();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if ($ret === null) {
+                array_push($err, 'lecturer must exist');
             }
         }
         if (count($err) > 0) {
@@ -1244,7 +1287,8 @@ class LecturerController extends Controller
                 $req = DB::table('department_has_lecturers')
                     ->join('departments', 'departments.id', '=', 'department_has_lecturers.department_id')
                     ->select('department_has_lecturers.department_id', 'departments.faculty_id')->where([
-                        ['department_has_lecturers.id', $request->department_has_lecturers_id],
+                        ['department_has_lecturers.department_id', $request->department_id],
+                        ['department_has_lecturers.lecturer_id', $request->lecturer_id],
                         ['department_has_lecturers.hidden', 0]
                     ])->first();
 

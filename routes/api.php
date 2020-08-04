@@ -117,4 +117,6 @@ Route::post('/choise', 'ChoiseController@create');
 Route::get('/choise', 'ChoiseController@get');
 Route::delete('/choise', 'ChoiseController@subjectClear');
 
+Route::get('/getChoiseByStudentID', 'ChoiseController@getChoiseByStudentID');
+
 Route::get('/choiseExport', 'ChoiseController@export');

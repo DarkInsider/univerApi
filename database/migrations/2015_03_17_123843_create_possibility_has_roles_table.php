@@ -112,6 +112,14 @@ class CreatePossibilityHasRolesTable extends Migration
             ['id' => 66, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 42],
             ['id' => 67, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 43],
             ['id' => 68, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 44],
+
+            ['id' => 75, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 37],
+            ['id' => 76, 'type' => 'faculty', 'scope' => 'own', 'role_id' => 2, 'possibility_id' => 38],
+
+
+            ['id' => 79, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 37],
+            ['id' => 80, 'type' => 'department', 'scope' => 'own', 'role_id' => 3, 'possibility_id' => 38],
+
         ]);
     }
 

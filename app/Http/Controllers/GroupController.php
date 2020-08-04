@@ -348,6 +348,23 @@ class GroupController extends Controller
         } catch (Exception $e) {
             return 'err';
         }
+
+        if($request->semester !== null) {
+            try {
+                DB::table('students')
+                    ->where('students.group_id', $request->group_id)
+                    ->update(
+                        [
+                            'semester' => intval($request->semester),
+                            'updated_at' => $date,
+                        ]
+                    );
+            } catch (Exception $e) {
+                return 'err';
+            }
+        }
+
+
         try {
             $ret = DB::table('groups')
                 ->select('groups.id', 'groups.code', 'groups.department_id')->where('groups.id', $request->group_id)->first();
@@ -368,6 +385,11 @@ class GroupController extends Controller
         }
         if($request->code === null){
             array_push($err, 'code is required');
+        }
+        if($request->semester !== null){
+            if(intval($request->semester) < 1) {
+                array_push($err, 'semester must be bigger to 0');
+            }
         }
         if($request->group_id === null){
             array_push($err, 'group_id is required');

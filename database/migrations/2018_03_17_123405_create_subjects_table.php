@@ -18,11 +18,13 @@ class CreateSubjectsTable extends Migration
             $table->string('title');
             $table->string('type');
             $table->integer('hours');
+            $table->longText('html')->nullable();
             $table->bigInteger('lecturer_id')->unsigned();
             $table->foreign('lecturer_id')->references('id')->on('lecturers');
             $table->bigInteger('department_id')->unsigned();
             $table->foreign('department_id')->references('id')->on('departments');
             $table->boolean('hidden')->default(false);
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
     }

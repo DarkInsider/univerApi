@@ -19,7 +19,7 @@ class StudentController extends Controller
     public function studentExport(Request $request){
         //requests
         $err=[];
-        if($request->header('token') === null){
+        if($request->token === null){
             array_push($err, 'token is required');
         }
         if($request->group_id === null){
@@ -42,7 +42,7 @@ class StudentController extends Controller
         if(count($err) > 0){
             return response($err, 400);
         }
-        $user = GetUser::get($request->header('token'));
+        $user = GetUser::get($request->token);
         if ($user === 'err') {
             return response('server error', 500);
         }
@@ -147,15 +147,82 @@ class StudentController extends Controller
 
        if($user->id === 1){
            try {
-               $ret = DB::table('students')
-                   ->join('groups', 'groups.id', '=', 'students.group_id')
-                   ->join('users', 'users.id', '=', 'students.user_id')
-                   ->select('students.id', 'students.info', 'students.group_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
-                       ['students.group_id', $request->group_id],
-                       ['students.hidden', 0]
-                   ])->get();
+               $ret2 = DB::table('groups')
+                   ->join('plans', 'groups.id', '=', 'plans.group_id')
+                   ->select()->where([
+                       ['groups.id', $request->group_id],
+                       ['plans.active', 1],
+                       ['plans.hidden', 0]
+                   ])->first();
            } catch (Exception $e) {
                return response($e, 500);
+           }
+
+           if($ret2 != null){
+               try {
+                   $ret = DB::table('students')
+                       ->join('groups', 'groups.id', '=', 'students.group_id')
+                       ->join('plans', 'groups.id', '=', 'plans.group_id')
+                       ->join('users', 'users.id', '=', 'students.user_id')
+                       ->select('students.id', 'students.info', 'students.group_id', 'students.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                           ['students.group_id', $request->group_id],
+                           ['plans.active', 1],
+                           ['students.hidden', 0]
+                       ])->get();
+               } catch (Exception $e) {
+                   return response($e, 500);
+               }
+
+               foreach ($ret as $item){
+                   try {
+                       $tmp = DB::table('notes')
+                           ->select( DB::raw('SUM(hours) as total_hours'))->where([
+                               ['notes.plan_id', $item->plan_id],
+                               ['notes.semester',  $item->semester],
+                               ['notes.hidden', 0]
+                           ])
+                           ->groupBy('semester')
+                           ->first();
+                   } catch (Exception $e) {
+                       return response($e, 500);
+                   }
+                   $item->hours=$tmp->total_hours;
+
+                   try {
+                       $tmp = DB::table('choises')
+                           ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+                           ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
+                               ['choises.student_id', $item->id],
+                               ['choises.hidden', 0]
+                           ])
+                           ->groupBy('choises.student_id')
+                           ->first();
+                   } catch (Exception $e) {
+                       return response($e, 500);
+                   }
+                   if($tmp !== null){
+                       $item->hours_selected=$tmp->total_hours;
+                   }else {
+                       $item->hours_selected=0;
+                   }
+
+               }
+
+
+
+
+           }else {
+               try {
+                   $ret = DB::table('students')
+                       ->join('groups', 'groups.id', '=', 'students.group_id')
+                       ->join('users', 'users.id', '=', 'students.user_id')
+                       ->select('students.id', 'students.info', 'students.group_id',  'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                           ['students.group_id', $request->group_id],
+                           ['students.hidden', 0]
+                       ])->get();
+               } catch (Exception $e) {
+                   return response($e, 500);
+               }
            }
            return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
 
@@ -210,16 +277,85 @@ class StudentController extends Controller
                }
                if($flag){
                    try {
-                       $ret = DB::table('students')
-                           ->join('groups', 'groups.id', '=', 'students.group_id')
-                           ->join('users', 'users.id', '=', 'students.user_id')
-                           ->select('students.id', 'students.info', 'students.group_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
-                               ['students.group_id', $request->group_id],
-                               ['students.hidden', 0]
-                           ])->get();
+                       $ret2 = DB::table('groups')
+                           ->join('plans', 'groups.id', '=', 'plans.group_id')
+                           ->select()->where([
+                               ['groups.id', $request->group_id],
+                               ['plans.active', 1],
+                               ['plans.hidden', 0]
+                           ])->first();
                    } catch (Exception $e) {
                        return response($e, 500);
                    }
+
+                   if($ret2 != null){
+                       try {
+                           $ret = DB::table('students')
+                               ->join('groups', 'groups.id', '=', 'students.group_id')
+                               ->join('plans', 'groups.id', '=', 'plans.group_id')
+                               ->join('users', 'users.id', '=', 'students.user_id')
+                               ->select('students.id', 'students.info', 'students.group_id', 'students.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                                   ['students.group_id', $request->group_id],
+                                   ['plans.active', 1],
+                                   ['students.hidden', 0]
+                               ])->get();
+                       } catch (Exception $e) {
+                           return response($e, 500);
+                       }
+
+                       foreach ($ret as $item){
+                           try {
+                               $tmp = DB::table('notes')
+                                   ->select( DB::raw('SUM(hours) as total_hours'))->where([
+                                       ['notes.plan_id', $item->plan_id],
+                                       ['notes.semester',  $item->semester],
+                                       ['notes.hidden', 0]
+                                   ])
+                                   ->groupBy('semester')
+                                   ->first();
+                           } catch (Exception $e) {
+                               return response($e, 500);
+                           }
+                           $item->hours=$tmp->total_hours;
+
+                           try {
+                               $tmp = DB::table('choises')
+                                   ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+                                   ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
+                                       ['choises.student_id', $item->id],
+                                       ['choises.hidden', 0]
+                                   ])
+                                   ->groupBy('choises.student_id')
+                                   ->first();
+                           } catch (Exception $e) {
+                               return response($e, 500);
+                           }
+                           if($tmp !== null){
+                               $item->hours_selected=$tmp->total_hours;
+                           }else {
+                               $item->hours_selected=0;
+                           }
+
+                       }
+
+
+
+
+                   }else {
+                       try {
+                           $ret = DB::table('students')
+                               ->join('groups', 'groups.id', '=', 'students.group_id')
+                               ->join('users', 'users.id', '=', 'students.user_id')
+                               ->select('students.id', 'students.info', 'students.group_id',  'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                                   ['students.group_id', $request->group_id],
+                                   ['students.hidden', 0]
+                               ])->get();
+                       } catch (Exception $e) {
+                           return response($e, 500);
+                       }
+                   }
+
+
                    return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                }else{
                    return response('forbidden', 403);
@@ -347,6 +483,7 @@ class StudentController extends Controller
 
 
         if($user->id === 1){
+
             if (intval($request->flag) === 1) {
                 $ret = StudentController::createStudent((object)array(
                     'info' => $request->info,
@@ -532,6 +669,7 @@ class StudentController extends Controller
                         'info' => $request->info,
                         'group_id' => $request->group_id,
                         'user_id' => $request->user_id,
+                        'semester' => $request->semester,
                         'updated_at' => $date,
                     ]
                 );
@@ -588,6 +726,9 @@ class StudentController extends Controller
         if ($request->info === null) {
             array_push($err, 'info is required');
         }
+         if ($request->semester === null) {
+             array_push($err, 'semester is required');
+         }
         if ($request->name === null) {
             array_push($err, 'name is required');
         }
@@ -626,6 +767,34 @@ class StudentController extends Controller
         if (count($err) > 0) {
             return response($err, 400);
         }
+
+
+        try{
+            $ret = DB::table('students')
+                ->join('groups', 'students.group_id', 'groups.id')
+                ->join('plans', 'plans.group_id', 'groups.id')
+                ->join('notes', 'plans.id', 'notes.plan_id')
+                ->select()
+                ->where([
+                    ['plans.active', 1],
+                    ['students.id', $request->student_id],
+                    ['notes.semester', $request->semester]
+                ])
+                ->first();
+        }catch (Exception $e){
+            return response($e, 500);
+        }
+
+        if ($ret === null) {
+            array_push($err, 'semester must exist');
+        }
+
+        if (count($err) > 0) {
+            return response($err, 400);
+        }
+
+
+
         $user = GetUser::get($request->header('token'));
         if ($user === 'err') {
             return response('server error', 500);

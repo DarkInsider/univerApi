@@ -50,6 +50,25 @@ class DepartmentController extends Controller
 
 
 
+        try {
+            $ret3 = DB::table('students')
+                ->select()->where([
+                    ['students.user_id', $user->id],
+                    ['students.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            return response($e, 500);
+        }
+        if($ret3 !== null){
+            $ret =  DB::table('departments')
+                ->select('id', 'title', 'faculty_id')->where([
+                    ['departments.hidden', 0],
+                ])->get();
+            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+        }
+
+
+
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             if($request->faculty_id === null){
                 $ret =  DB::table('departments')

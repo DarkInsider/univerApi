@@ -23,7 +23,11 @@ class CreateRoleHasRolesTable extends Migration
             $table->timestamps();
         });
         DB::table('role_has_roles')->insert([
-            ['id' => 1, 'role_id' => 2, 'role_id_has' => 3]
+            ['id' => 1, 'role_id' => 2, 'role_id_has' => 3],
+            ['id' => 2, 'role_id' => 2, 'role_id_has' => 4],
+            ['id' => 3, 'role_id' => 2, 'role_id_has' => 5],
+            ['id' => 4, 'role_id' => 3, 'role_id_has' => 4],
+            ['id' => 5, 'role_id' => 3, 'role_id_has' => 5]
         ]);
     }
 

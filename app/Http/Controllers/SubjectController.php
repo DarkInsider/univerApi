@@ -229,23 +229,55 @@ class SubjectController extends Controller
             return response('unauthorized', 401);
         }
 
-        if ($request->lecturer_id !== null) {
-            try {
-                $ret = DB::table('subjects')
-                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.lecturer_id','subjects.department_id')->where([
-                        ['subjects.lecturer_id', $request->lecturer_id],
-                        ['subjects.hidden', 0]
-                    ])->get();
-            } catch (Exception $e) {
-                return response($e, 500);
-            }
-            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+
+
+        try {
+            $ret3 = DB::table('students')
+                ->select()->where([
+                    ['students.user_id', $user->id],
+                    ['students.hidden', 0]
+                ])->first();
+        } catch (Exception $e) {
+            return response($e, 500);
         }
-        if ($request->department_id !== null) {
+        if($ret3 !== null){
+            if ($request->lecturer_id !== null) {
+                try {
+                    $ret = DB::table('subjects')
+                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                        ->join('users', 'users.id', 'lecturers.user_id')
+                        ->join('departments', 'departments.id', 'subjects.department_id')
+                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                            ['subjects.lecturer_id', $request->lecturer_id],
+                            ['subjects.hidden', 0]
+                        ])->get();
+                } catch (Exception $e) {
+                    return response($e, 500);
+                }
+                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+            if ($request->department_id !== null) {
+                try {
+                    $ret = DB::table('subjects')
+                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                        ->join('users', 'users.id', 'lecturers.user_id')
+                        ->join('departments', 'departments.id', 'subjects.department_id')
+                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                            ['subjects.department_id', $request->department_id],
+                            ['subjects.hidden', 0]
+                        ])->get();
+                } catch (Exception $e) {
+                    return response($e, 500);
+                }
+                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+
             try {
                 $ret = DB::table('subjects')
-                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.lecturer_id','subjects.department_id')->where([
-                        ['subjects.lecturer_id', $request->department_id],
+                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                    ->join('users', 'users.id', 'lecturers.user_id')
+                    ->join('departments', 'departments.id', 'subjects.department_id')
+                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
                         ['subjects.hidden', 0]
                     ])->get();
             } catch (Exception $e) {
@@ -254,15 +286,276 @@ class SubjectController extends Controller
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }
 
-        try {
-            $ret = DB::table('subjects')
-                ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.lecturer_id','subjects.department_id')->where([
-                    ['subjects.hidden', 0]
-                ])->get();
-        } catch (Exception $e) {
-            return response($e, 500);
+
+
+
+
+
+        if($user->id === 1){  //Если суперюзер то сразу выполняем
+            if ($request->lecturer_id !== null) {
+                try {
+                    $ret = DB::table('subjects')
+                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                        ->join('users', 'users.id', 'lecturers.user_id')
+                        ->join('departments', 'departments.id', 'subjects.department_id')
+                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                            ['subjects.lecturer_id', $request->lecturer_id],
+                            ['subjects.hidden', 0]
+                        ])->get();
+                } catch (Exception $e) {
+                    return response($e, 500);
+                }
+                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+            if ($request->department_id !== null) {
+                try {
+                    $ret = DB::table('subjects')
+                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                        ->join('users', 'users.id', 'lecturers.user_id')
+                        ->join('departments', 'departments.id', 'subjects.department_id')
+                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                            ['subjects.department_id', $request->department_id],
+                            ['subjects.hidden', 0]
+                        ])->get();
+                } catch (Exception $e) {
+                    return response($e, 500);
+                }
+                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+            }
+
+            try {
+                $ret = DB::table('subjects')
+                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                    ->join('users', 'users.id', 'lecturers.user_id')
+                    ->join('departments', 'departments.id', 'subjects.department_id')
+                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                        ['subjects.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+        }else {
+            try {
+                $ret = DB::table('possibility_has_roles')
+                    ->select()->where([
+                        ['possibility_has_roles.role_id', $user->role_id],
+                        ['possibility_has_roles.possibility_id', 33],
+                        ['possibility_has_roles.hidden', 0]
+                    ])->get();
+            } catch (Exception $e) {
+                return response($e, 500);
+            }
+            if (count($ret) > 0) {
+
+                $subjects=[];
+                $faculty = DB::table('departments')->select('departments.faculty_id')->where([
+                    ['departments.id', $user->department_id],
+                ])->first();
+                foreach ($ret as $item) {
+                    if ($item->type === 'faculty') {
+                        if ($item->scope === 'own') {
+                            if ($request->lecturer_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.lecturer_id', $request->lecturer_id],
+                                            ['departments.faculty_id', $faculty->faculty_id],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+                            if ($request->department_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.department_id', $request->department_id],
+                                            ['departments.faculty_id', $faculty->faculty_id],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+
+                            try {
+                                $ret = DB::table('subjects')
+                                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                    ->join('users', 'users.id', 'lecturers.user_id')
+                                    ->join('departments', 'departments.id', 'subjects.department_id')
+                                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                        ['departments.faculty_id', $faculty->faculty_id],
+                                        ['subjects.hidden', 0]
+                                    ])->get();
+                            } catch (Exception $e) {
+                                return response($e, 500);
+                            }
+                            array_push($subjects, $ret);
+
+                            continue;
+                        } else {
+                            if ($request->lecturer_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.lecturer_id', $request->lecturer_id],
+                                            ['departments.faculty_id', intval($item->scope)],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+                            if ($request->department_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.department_id', $request->department_id],
+                                            ['departments.faculty_id', intval($item->scope)],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+
+                            try {
+                                $ret = DB::table('subjects')
+                                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                    ->join('users', 'users.id', 'lecturers.user_id')
+                                    ->join('departments', 'departments.id', 'subjects.department_id')
+                                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                        ['departments.faculty_id', intval($item->scope)],
+                                        ['subjects.hidden', 0]
+                                    ])->get();
+                            } catch (Exception $e) {
+                                return response($e, 500);
+                            }
+                            array_push($subjects, $ret);
+                            continue;
+                        }
+                    } else if ($item->type === 'department') {
+                        if ($item->scope === 'own') {
+                            if ($request->lecturer_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.lecturer_id', $request->lecturer_id],
+                                            ['departments.id', $user->department_id],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+                            if ($request->department_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.department_id', $request->department_id],
+                                            ['departments.id', $user->department_id],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+
+                            try {
+                                $ret = DB::table('subjects')
+                                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                    ->join('users', 'users.id', 'lecturers.user_id')
+                                    ->join('departments', 'departments.id', 'subjects.department_id')
+                                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                        ['departments.id', $user->department_id],
+                                        ['subjects.hidden', 0]
+                                    ])->get();
+                            } catch (Exception $e) {
+                                return response($e, 500);
+                            }
+                            array_push($subjects, $ret);
+                            continue;
+                        } else {
+                            if ($request->lecturer_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.lecturer_id', $request->lecturer_id],
+                                            ['departments.id', intval($item->scope)],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+                            if ($request->department_id !== null) {
+                                try {
+                                    $ret = DB::table('subjects')
+                                        ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                        ->join('users', 'users.id', 'lecturers.user_id')
+                                        ->join('departments', 'departments.id', 'subjects.department_id')
+                                        ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                            ['subjects.department_id', $request->department_id],
+                                            ['departments.id', intval($item->scope)],
+                                            ['subjects.hidden', 0]
+                                        ])->get();
+                                } catch (Exception $e) {
+                                    return response($e, 500);
+                                }
+                                return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+                            }
+
+                            try {
+                                $ret = DB::table('subjects')
+                                    ->join('lecturers', 'lecturers.id', 'subjects.lecturer_id')
+                                    ->join('users', 'users.id', 'lecturers.user_id')
+                                    ->join('departments', 'departments.id', 'subjects.department_id')
+                                    ->select('subjects.id', 'subjects.title', 'subjects.type', 'subjects.hours', 'subjects.active','subjects.lecturer_id', 'users.name as lecturer_name','subjects.department_id', 'departments.title as department_title')->where([
+                                        ['departments.id', intval($item->scope)],
+                                        ['subjects.hidden', 0]
+                                    ])->get();
+                            } catch (Exception $e) {
+                                return response($e, 500);
+                            }
+                            array_push($subjects, $ret);
+                            continue;
+                        }
+                    }
+                }
+            }
         }
-        return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
+
+        return response(  json_encode(Normalize::normalize($subjects), JSON_UNESCAPED_UNICODE), 200);
 
     }
 
@@ -285,10 +578,13 @@ class SubjectController extends Controller
         }
         try {
             $ret = DB::table('subjects')
-                ->select('subjects.id', 'subjects.title', 'subjects.html', 'subjects.type', 'subjects.hours', 'subjects.lecturer_id','subjects.department_id')->where([
+                ->join('lecturers', 'lecturers.id', '=', 'subjects.lecturer_id')
+                ->join('users', 'users.id', '=', 'lecturers.user_id')
+                ->join('departments', 'departments.id', '=', 'subjects.department_id')
+                ->select('subjects.id', 'subjects.title', 'subjects.html', 'subjects.type', 'subjects.hours', 'subjects.active', 'subjects.lecturer_id','users.name as lecturer_name', 'subjects.department_id', 'departments.title as department_title')->where([
                     ['subjects.id', $id],
                     ['subjects.hidden', 0]
-                ])->get();
+                ])->first();
         } catch (Exception $e) {
             return response($e, 500);
         }
@@ -299,19 +595,23 @@ class SubjectController extends Controller
     private function update_subject($request){
         $date = date('Y-m-d H:i:s');
         $response = [];
+        $inp =   [
+            'lecturer_id' => $request->lecturer_id,
+            'department_id' => $request->department_id,
+            'type' => $request->type,
+            'title' => $request->title,
+            'hours' => $request->hours,
+            'html' => $request->html,
+            'updated_at' => $date,
+        ];
+        if($request->active !== null){
+            $inp['active']=1;
+        }
         try {
             DB::table('subjects')
                 ->where('subjects.id', $request->subject_id)
                 ->update(
-                    [
-                        'lecturer_id' => $request->lecturer_id,
-                        'department_id' => $request->department_id,
-                        'type' => $request->type,
-                        'title' => $request->title,
-                        'hours' => $request->hours,
-                        'html' => $request->html,
-                        'updated_at' => $date,
-                    ]
+                  $inp
                 );
         } catch (Exception $e) {
             $response['code'] = 500;
@@ -660,7 +960,6 @@ class SubjectController extends Controller
             }
         }
     }
-
 
 
 }
