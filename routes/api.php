@@ -84,21 +84,44 @@ Route::put('/planSetActive', 'PlanController@setActive');
 
 Route::post('/planImport', 'PlanController@import');
 
-Route::get('/note', 'NoteController@get');
-Route::post('/note', 'NoteController@create');
-Route::put('/note', 'NoteController@update');
-Route::delete('/note', 'NoteController@delete');
+
+//Route::get('/note', 'NoteController@get');
+//Route::post('/note', 'NoteController@create');
+//Route::put('/note', 'NoteController@update');
+//Route::delete('/note', 'NoteController@delete');
+
+Route::post('/pinLecturerToSubject', 'NoteController@pinLecturerToSubject');
+Route::delete('/pinLecturerToSubject', 'NoteController@unPinLecturerFromSubject');
+
+Route::post('/pinSubjectRequirement', 'NoteController@pinSubjectRequirement');
+Route::delete('/pinSubjectRequirement', 'NoteController@unPinSubjectRequirement');
+
+Route::put('/noteUpdateSubjectDescription', 'NoteController@updateSubjectDescription');
+Route::put('/noteUpdateSubjectDifficult', 'NoteController@updateSubjectDifficult');
+
+Route::get('/normativeSubjectById/{id}', 'NoteController@getNormativeSubjectById');
+
+
+Route::post('/setGroupNextSemester', 'StudentStudyingLogController@setGroupNextSemester');
+
 
 Route::get('/student', 'StudentController@get');
 Route::post('/student', 'StudentController@create');
 Route::put('/student', 'StudentController@update');
 Route::delete('/student', 'StudentController@delete');
 
+Route::get('/student/getOwnGroups', 'StudentController@getOwnGroups');
+
+
+Route::get('/getAvailableSubjects', 'SubjectController@getAvailableSubjects');
+Route::get('/normativeSubject', 'NoteController@getNormativeSubjects');
+
 Route::get('/studentsExport', 'StudentController@studentExport');
 Route::post('/studentsImport', 'StudentController@import');
 
 Route::post('/lecturer', 'LecturerController@create');
 Route::get('/lecturer', 'LecturerController@get');
+Route::get('/lecturer/{id}', 'LecturerController@getByID');
 Route::put('/lecturer', 'LecturerController@update');
 Route::delete('/lecturer', 'LecturerController@delete');
 
@@ -113,10 +136,14 @@ Route::delete('/subject', 'SubjectController@delete');
 
 Route::get('/subject/{id}', 'SubjectController@getById');
 
-Route::post('/choise', 'ChoiseController@create');
-Route::get('/choise', 'ChoiseController@get');
+Route::post('/choise', 'ChoiseController@createChoise');
+Route::get('/choise', 'ChoiseController@getChoises');
 Route::delete('/choise', 'ChoiseController@subjectClear');
 
+Route::get('/getChoiseInfoByStudentID', 'ChoiseController@getChoiseInfoByStudentID');
 Route::get('/getChoiseByStudentID', 'ChoiseController@getChoiseByStudentID');
 
 Route::get('/choiseExport', 'ChoiseController@export');
+
+
+Route::get('/log', 'LogController@get');

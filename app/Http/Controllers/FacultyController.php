@@ -2,7 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Choise;
 use App\Faculty;
+use App\Lecturer_has_subject;
+use App\Log;
+use App\Note;
+use App\Plan;
+use App\Subject;
+use App\SubjectRequirement;
 use Illuminate\Http\Request\FacultyRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +161,18 @@ class FacultyController extends Controller
 
         if ($user->id === 1) {  //Если суперюзер то сразу выполняем
             $fac = FacultyController::create_faculty($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Faculty create',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
         } else {
             try {
@@ -168,6 +187,18 @@ class FacultyController extends Controller
             }
             if (count($ret) > 0) {
                 $fac = FacultyController::create_faculty($request);
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Faculty create',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
 
             }else {
@@ -246,6 +277,18 @@ class FacultyController extends Controller
             if($fac === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Faculty update',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
             }
 
@@ -304,6 +347,18 @@ class FacultyController extends Controller
                     if($fac === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Faculty update',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($fac, JSON_UNESCAPED_UNICODE), 200);
                     }
                 }else{
@@ -383,15 +438,16 @@ class FacultyController extends Controller
             return 'err';
         }
 
+
+
         try {
-            DB::table('plans')
-                ->join('groups', 'groups.id', 'plans.group_id')
-                ->join('departments', 'departments.id', '=', 'groups.department_id')
+            DB::table('department_has_lecturers')
+                ->join('departments', 'departments.id', '=', 'department_has_lecturers.department_id')
                 ->where('departments.faculty_id', $request->id)
                 ->update(
                     [
-                        'plans.hidden' => true,
-                        'plans.updated_at' => $date,
+                        'department_has_lecturers.hidden' => true,
+                        'department_has_lecturers.updated_at' => $date,
                     ]
                 );
         } catch (Exception $e) {
@@ -399,22 +455,283 @@ class FacultyController extends Controller
             return 'err';
         }
 
-        try {
-            DB::table('notes')
-                ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                ->join('groups', 'groups.id', 'plans.group_id')
+
+
+
+
+//        try {
+//            DB::table('plans')
+//                ->join('groups', 'groups.id', 'plans.group_id')
+//                ->join('departments', 'departments.id', '=', 'groups.department_id')
+//                ->where('departments.faculty_id', $request->id)
+//                ->update(
+//                    [
+//                        'plans.hidden' => true,
+//                        'plans.updated_at' => $date,
+//                    ]
+//                );
+//        } catch (Exception $e) {
+//            DB::rollback();
+//            return 'err';
+//        }
+//
+//        try {
+//            DB::table('notes')
+//                ->join('plans', 'plans.id', '=', 'notes.plan_id')
+//                ->join('groups', 'groups.id', 'plans.group_id')
+//                ->join('departments', 'departments.id', '=', 'groups.department_id')
+//                ->where('departments.faculty_id', $request->id)
+//                ->update(
+//                    [
+//                        'notes.hidden' => true,
+//                        'notes.updated_at' => $date,
+//                    ]
+//                );
+//        } catch (Exception $e) {
+//            DB::rollback();
+//            return 'err';
+//        }
+
+
+
+
+
+
+        try{
+            $ret = DB::table('choises')
+                ->join('students', 'students.id', 'choises.student_id')
+
+                ->join('groups', 'groups.id', 'students.group_id')
                 ->join('departments', 'departments.id', '=', 'groups.department_id')
-                ->where('departments.faculty_id', $request->id)
-                ->update(
-                    [
-                        'notes.hidden' => true,
-                        'notes.updated_at' => $date,
-                    ]
-                );
+
+                ->select('choises.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        try {
+            $arr =[];
+            foreach ($ret as $item){
+                array_push($arr, $item->id);
+            }
+            Choise::destroy($arr);
         } catch (Exception $e) {
             DB::rollback();
             return 'err';
         }
+
+
+        try{
+            $ret = DB::table('choises')
+                ->join('notes', 'notes.id', 'choises.subject_id')
+
+                ->join('plans', 'plans.id', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+
+                ->select('choises.id')
+                ->where([
+                    ['departments.faculty_id', $request->id],
+                    ['choises.subject_type', 'N']
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Choise::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+        try{
+            $ret = DB::table('choises')
+                ->join('subjects', 'subjects.id', 'choises.subject_id')
+
+                ->join('departments', 'departments.id', '=', 'subjects.department_id')
+
+                ->select('choises.id')
+                ->where([
+                    ['departments.faculty_id', $request->id],
+                    ['choises.subject_type', 'V']
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Choise::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        try{
+            $ret = DB::table('subjects')
+                ->join('departments', 'departments.id', '=', 'subjects.department_id')
+
+                ->select('subjects.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Subject::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        try{
+            $ret = DB::table('notes')
+
+                ->join('plans', 'plans.id', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+
+                ->join('lecturer_has_subjects', 'notes.id', 'lecturer_has_subjects.subject_id')
+                ->select('lecturer_has_subjects.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Lecturer_has_subject::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try{
+            $ret = DB::table('notes')
+
+                ->join('plans', 'plans.id', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+
+                ->join('subject_requirements', 'notes.id', 'subject_requirements.subject_id')
+                ->select('subject_requirements.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            SubjectRequirement::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+        try{
+            $ret = DB::table('notes')
+                ->join('plans', 'plans.id', 'notes.plan_id')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->select('notes.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Note::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        try{
+            $ret = DB::table('plans')
+                ->join('groups', 'groups.id', 'plans.group_id')
+                ->join('departments', 'departments.id', '=', 'groups.department_id')
+                ->select('plans.id')
+                ->where([
+                    ['departments.faculty_id', $request->id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Plan::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         DB::commit();
         return 'Delete OK';
 
@@ -466,6 +783,18 @@ class FacultyController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Faculty delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         } else {
@@ -522,6 +851,18 @@ class FacultyController extends Controller
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Faculty delete',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 } else {

@@ -1,10 +1,11 @@
 <?php
 
+
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateGroupsTable extends Migration
+class CreateLecturerHasSubjectsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +14,12 @@ class CreateGroupsTable extends Migration
      */
     public function up()
     {
-        Schema::create('groups', function (Blueprint $table) {
+        Schema::create('lecturer_has_subjects', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('code');
-            $table->integer('semester')->default(1);
-            $table->string('gradue_type')->default('B');
-            $table->bigInteger('department_id')->unsigned();
-            $table->foreign('department_id')->references('id')->on('departments');
+            $table->bigInteger('lecturer_id')->unsigned();
+            $table->foreign('lecturer_id')->references('id')->on('lecturers');
+            $table->bigInteger('subject_id')->unsigned();
+            $table->foreign('subject_id')->references('id')->on('notes');
             $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
@@ -32,6 +32,6 @@ class CreateGroupsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('groups');
+        Schema::dropIfExists('lecturer_has_subjects');
     }
 }

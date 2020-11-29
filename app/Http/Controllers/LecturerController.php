@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Lecturer;
+use App\Lecturer_has_subject;
+use App\Log;
+use App\Subject;
 use Illuminate\Http\Request;
 use App\Http\Helpers\GetUser;
 use App\Http\Helpers\Normalize;
@@ -12,6 +15,74 @@ use App\Department_has_lecturer;
 
 class LecturerController extends Controller
 {
+
+
+    public function getByID(Request $request, $id){
+
+        //requests
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+        if($id === null){
+            array_push($err, 'id is required');
+        }else {
+            try{
+                $ret = DB::table('lecturers')
+                    ->select('lecturers.id')->where([
+                        ['lecturers.id', $id],
+                        ['lecturers.hidden', 0]
+                    ])->first();
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+            if($ret === null){
+                array_push($err, 'lecturer must exist');
+            }
+        }
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+        try{
+            $ret = DB::table('lecturers')
+                ->join('users', 'users.id', 'lecturers.user_id')
+                ->select('lecturers.id','lecturers.info','users.name')->where([
+                    ['lecturers.id', $id],
+                    ['lecturers.hidden', 0]
+                ])->first();
+        }
+        catch (Exception $e){
+            return response($e, 500);
+        }
+        $resp = [];
+        $resp['lecturer'] = $ret;
+
+        try{
+            $ret2 = DB::table('department_has_lecturers')
+                ->join('departments', 'departments.id', 'department_has_lecturers.department_id')
+                ->select('department_has_lecturers.id','department_has_lecturers.department_id','department_has_lecturers.type as posada','departments.title as department_title')->where([
+                    ['department_has_lecturers.lecturer_id', $id],
+                    ['department_has_lecturers.hidden', 0]
+                ])->get();
+        }
+        catch (Exception $e){
+            return response($e, 500);
+        }
+        $resp['departments'] = $ret2;
+
+
+        return response(json_encode($resp , JSON_UNESCAPED_UNICODE), 200);
+    }
 
 
     private   function create_lecturer($request){
@@ -40,15 +111,20 @@ class LecturerController extends Controller
                 $response['data'] = $e;
                 return $response;
             }
+
+
+            $tmpArr = [
+                'user_id' => $newUser->id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ];
+
+            if($request->info !== null){
+                array_push($tmpArr,  ['info' => $request->info]);
+            }
+
             try {
-                $lecturer = Lecturer::create(
-                    [
-                        'info' => $request->info,
-                        'user_id' => $newUser->id,
-                        'created_at' => $date,
-                        'updated_at' => $date,
-                    ]
-                );
+                $lecturer = Lecturer::create($tmpArr);
             } catch (\Exception $e) {
                 DB::rollback();
                 $response['code'] = 500;
@@ -85,15 +161,19 @@ class LecturerController extends Controller
                 $response['data'] = $e;
                 return $response;
             }
+
+            $tmpArr = [
+                'user_id' => $newUser->id,
+                'created_at' => $date,
+                'updated_at' => $date,
+            ];
+
+            if($request->info !== null){
+                array_push($tmpArr,  ['info' => $request->info]);
+            }
+
             try {
-                $lecturer = Lecturer::create(
-                    [
-                        'info' => $request->info,
-                        'user_id' => $newUser->id,
-                        'created_at' => $date,
-                        'updated_at' => $date,
-                    ]
-                );
+                $lecturer = Lecturer::create($tmpArr);
             } catch (\Exception $e) {
                 DB::rollback();
                 $response['code'] = 500;
@@ -130,9 +210,6 @@ class LecturerController extends Controller
         $err = [];
         if ($request->header('token') === null) {
             array_push($err, 'token is required');
-        }
-        if ($request->info === null) {
-            array_push($err, 'info is required');
         }
         if ($request->type === null) {
             array_push($err, 'type is required');
@@ -225,6 +302,18 @@ class LecturerController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = LecturerController::create_lecturer($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Lecturer create',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -314,6 +403,18 @@ class LecturerController extends Controller
                 }
                 if ($flag1 && $flag2) {
                     $ret = LecturerController::create_lecturer($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Lecturer create',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -428,6 +529,18 @@ class LecturerController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = LecturerController::pin($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Lecturer to department pin',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -508,6 +621,18 @@ class LecturerController extends Controller
                 }
                 if ($flag) {
                     $ret = LecturerController::pin($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Lecturer to department pin',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -732,6 +857,18 @@ class LecturerController extends Controller
         if ($user->id === 1) {
             $ret = LecturerController::update_lecturer($request);
             if($ret !== 'error'){
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Lecturer update',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }else{
                 return response('server error', 500);
@@ -816,6 +953,18 @@ class LecturerController extends Controller
                     if($ret === 'error'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Lecturer update',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 }else{
@@ -854,6 +1003,56 @@ class LecturerController extends Controller
             DB::rollback();
             return 'error';
         }
+
+        try{
+            $ret = DB::table('notes')
+
+                ->join('lecturer_has_subjects', 'notes.id', 'lecturer_has_subjects.subject_id')
+                ->select('lecturer_has_subjects.id')
+                ->where([
+                    ['lecturer_has_subjects.lecturer_id',  $request->lecturer_id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Lecturer_has_subject::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        try{
+            $ret = DB::table('subjects')
+
+                ->select('subjects.id')
+                ->where([
+                    ['subjects.lecturer_id',  $request->lecturer_id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        $arr =[];
+        foreach ($ret as $item){
+            array_push($arr, $item->id);
+        }
+        try {
+            Subject::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
         DB::commit();
         return 'Delete OK';
     }
@@ -898,6 +1097,18 @@ class LecturerController extends Controller
         if ($user->id === 1) {
             $ret = LecturerController::delete_lecturer($request);
             if($ret !== 'error'){
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Lecturer delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }else{
                 return response('server error', 500);
@@ -957,6 +1168,18 @@ class LecturerController extends Controller
                 }
                 if ($flag) {
                     $ret = LecturerController::delete_lecturer($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Lecturer delete',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -1104,6 +1327,18 @@ class LecturerController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = LecturerController::pinUpdate($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Lecturer to department pin update',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -1180,6 +1415,18 @@ class LecturerController extends Controller
                 }
                 if ($flag1 && $flag2) {
                     $ret = LecturerController::pinUpdate($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Lecturer to department pin update',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);
@@ -1268,6 +1515,18 @@ class LecturerController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = LecturerController::pinDelete($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Lecturer to department pin delete',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -1325,6 +1584,18 @@ class LecturerController extends Controller
                 }
                 if ($flag) {
                     $ret = LecturerController::pinDelete($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Lecturer to department pin delete',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);

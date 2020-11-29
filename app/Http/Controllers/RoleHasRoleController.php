@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Log;
 use App\Role_has_role;
 use Illuminate\Http\Request;
 
@@ -133,6 +134,18 @@ class RoleHasRoleController extends Controller
                         'updated_at' => $date,
                     ]
                 );
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'RoleHasRole create',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -226,6 +239,18 @@ class RoleHasRoleController extends Controller
             } catch (Exception $e) {
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'RoleHasRole update',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -280,6 +305,18 @@ class RoleHasRoleController extends Controller
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }
 
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'RoleHasRole delete',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode('deleted', JSON_UNESCAPED_UNICODE), 200);
         }else {
             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);

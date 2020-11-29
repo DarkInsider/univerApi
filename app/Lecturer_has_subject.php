@@ -4,9 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Choise extends Model
+class Lecturer_has_subject extends Model
 {
-    protected $fillable = ['date', 'subject_id', 'student_id', 'semester','subject_type'];
+    protected $fillable = ['id','lecturer_id', 'subject_id'];
 
     protected $hidden = ['created_at', 'updated_at', 'deleted_at', 'hidden'];
 }

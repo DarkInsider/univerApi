@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Choise;
+use App\Log;
 use App\Student;
 use Illuminate\Http\Request;
 use App\Http\Helpers\GetUser;
@@ -14,6 +16,59 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
+
+    public function getOwnGroups(Request $request){
+        $err=[];
+        if($request->header('token') === null){
+            array_push($err, 'token is required');
+        }
+
+        if(count($err) > 0){
+            return response($err, 400);
+        }
+        $user = GetUser::get($request->header('token'));
+        if ($user === 'err') {
+            return response('server error', 500);
+        }
+        if ($user === null) {
+            return response('unauthorized', 401);
+        }
+
+        try {
+            $students = DB::table('students')
+                ->join('groups', 'students.group_id','groups.id')
+                ->select('students.id as student_id', 'students.group_id', 'groups.code')->where([
+                    ['students.user_id', $user->id],
+                    ['students.hidden', 0]
+                ])->get();
+        } catch (Exception $e) {
+            return response($e, 500);
+        }
+		
+		
+		foreach($students as $student){
+			 try {
+				$plan = DB::table('plans')
+					->select('plans.id as plan_id')->where([
+						['plans.group_id', $student->group_id],
+						['plans.hidden', 0],
+						['plans.active', 1]
+					])->first();
+			} catch (Exception $e) {
+				return response($e, 500);
+			}
+			if($plan != null){
+				$student->plan_id=$plan->plan_id;
+			}else{
+				$student->plan_id='plan_error';
+			}
+		}
+		
+	
+
+        return response(  json_encode($students, JSON_UNESCAPED_UNICODE), 200);
+
+    }
 
 
     public function studentExport(Request $request){
@@ -164,7 +219,7 @@ class StudentController extends Controller
                        ->join('groups', 'groups.id', '=', 'students.group_id')
                        ->join('plans', 'groups.id', '=', 'plans.group_id')
                        ->join('users', 'users.id', '=', 'students.user_id')
-                       ->select('students.id', 'students.info', 'students.group_id', 'students.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                       ->select('students.id', 'students.info', 'students.group_id', 'groups.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
                            ['students.group_id', $request->group_id],
                            ['plans.active', 1],
                            ['students.hidden', 0]
@@ -173,40 +228,41 @@ class StudentController extends Controller
                    return response($e, 500);
                }
 
-               foreach ($ret as $item){
-                   try {
-                       $tmp = DB::table('notes')
-                           ->select( DB::raw('SUM(hours) as total_hours'))->where([
-                               ['notes.plan_id', $item->plan_id],
-                               ['notes.semester',  $item->semester],
-                               ['notes.hidden', 0]
-                           ])
-                           ->groupBy('semester')
-                           ->first();
-                   } catch (Exception $e) {
-                       return response($e, 500);
-                   }
-                   $item->hours=$tmp->total_hours;
-
-                   try {
-                       $tmp = DB::table('choises')
-                           ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
-                           ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
-                               ['choises.student_id', $item->id],
-                               ['choises.hidden', 0]
-                           ])
-                           ->groupBy('choises.student_id')
-                           ->first();
-                   } catch (Exception $e) {
-                       return response($e, 500);
-                   }
-                   if($tmp !== null){
-                       $item->hours_selected=$tmp->total_hours;
-                   }else {
-                       $item->hours_selected=0;
-                   }
-
-               }
+//               foreach ($ret as $item){
+//                   try {
+//                       $tmp = DB::table('notes')
+//                           ->select(DB::raw('SUM(credits_ECTS) as total_credits_ECTS'))->where([
+//                               ['notes.plan_id', $ret->plan_id],
+//                               ['notes.semester', $ret->semester],
+//                               ['notes.type', 'V'],
+//                               ['notes.hidden', 0]
+//                           ])
+//                           ->groupBy('semester')
+//                           ->first();
+//                   } catch (Exception $e) {
+//                       return response($e, 500);
+//                   }
+//                   $item->hours=$tmp->total_hours;
+//
+//                   try {
+//                       $tmp = DB::table('choises')
+//                           ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+//                           ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
+//                               ['choises.student_id', $item->id],
+//                               ['choises.hidden', 0]
+//                           ])
+//                           ->groupBy('choises.student_id')
+//                           ->first();
+//                   } catch (Exception $e) {
+//                       return response($e, 500);
+//                   }
+//                   if($tmp !== null){
+//                       $item->hours_selected=$tmp->total_hours;
+//                   }else {
+//                       $item->hours_selected=0;
+//                   }
+//
+//               }
 
 
 
@@ -294,7 +350,7 @@ class StudentController extends Controller
                                ->join('groups', 'groups.id', '=', 'students.group_id')
                                ->join('plans', 'groups.id', '=', 'plans.group_id')
                                ->join('users', 'users.id', '=', 'students.user_id')
-                               ->select('students.id', 'students.info', 'students.group_id', 'students.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
+                               ->select('students.id', 'students.info', 'students.group_id', 'groups.semester', 'plans.id as plan_id', 'students.user_id', 'users.name', 'groups.code as group_code')->where([
                                    ['students.group_id', $request->group_id],
                                    ['plans.active', 1],
                                    ['students.hidden', 0]
@@ -303,40 +359,40 @@ class StudentController extends Controller
                            return response($e, 500);
                        }
 
-                       foreach ($ret as $item){
-                           try {
-                               $tmp = DB::table('notes')
-                                   ->select( DB::raw('SUM(hours) as total_hours'))->where([
-                                       ['notes.plan_id', $item->plan_id],
-                                       ['notes.semester',  $item->semester],
-                                       ['notes.hidden', 0]
-                                   ])
-                                   ->groupBy('semester')
-                                   ->first();
-                           } catch (Exception $e) {
-                               return response($e, 500);
-                           }
-                           $item->hours=$tmp->total_hours;
-
-                           try {
-                               $tmp = DB::table('choises')
-                                   ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
-                                   ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
-                                       ['choises.student_id', $item->id],
-                                       ['choises.hidden', 0]
-                                   ])
-                                   ->groupBy('choises.student_id')
-                                   ->first();
-                           } catch (Exception $e) {
-                               return response($e, 500);
-                           }
-                           if($tmp !== null){
-                               $item->hours_selected=$tmp->total_hours;
-                           }else {
-                               $item->hours_selected=0;
-                           }
-
-                       }
+//                       foreach ($ret as $item){
+//                           try {
+//                               $tmp = DB::table('notes')
+//                                   ->select( DB::raw('SUM(hours) as total_hours'))->where([
+//                                       ['notes.plan_id', $item->plan_id],
+//                                       ['notes.semester',  $item->semester],
+//                                       ['notes.hidden', 0]
+//                                   ])
+//                                   ->groupBy('semester')
+//                                   ->first();
+//                           } catch (Exception $e) {
+//                               return response($e, 500);
+//                           }
+//                           $item->hours=$tmp->total_hours;
+//
+//                           try {
+//                               $tmp = DB::table('choises')
+//                                   ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+//                                   ->select( DB::raw('SUM(subjects.hours) as total_hours'))->where([
+//                                       ['choises.student_id', $item->id],
+//                                       ['choises.hidden', 0]
+//                                   ])
+//                                   ->groupBy('choises.student_id')
+//                                   ->first();
+//                           } catch (Exception $e) {
+//                               return response($e, 500);
+//                           }
+//                           if($tmp !== null){
+//                               $item->hours_selected=$tmp->total_hours;
+//                           }else {
+//                               $item->hours_selected=0;
+//                           }
+//
+//                       }
 
 
 
@@ -648,6 +704,21 @@ class StudentController extends Controller
                         }
                         DB::commit();
                     }
+
+
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Student create',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
+
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -669,7 +740,6 @@ class StudentController extends Controller
                         'info' => $request->info,
                         'group_id' => $request->group_id,
                         'user_id' => $request->user_id,
-                        'semester' => $request->semester,
                         'updated_at' => $date,
                     ]
                 );
@@ -726,9 +796,9 @@ class StudentController extends Controller
         if ($request->info === null) {
             array_push($err, 'info is required');
         }
-         if ($request->semester === null) {
-             array_push($err, 'semester is required');
-         }
+//         if ($request->semester === null) {
+//             array_push($err, 'semester is required');
+//         }
         if ($request->name === null) {
             array_push($err, 'name is required');
         }
@@ -769,25 +839,25 @@ class StudentController extends Controller
         }
 
 
-        try{
-            $ret = DB::table('students')
-                ->join('groups', 'students.group_id', 'groups.id')
-                ->join('plans', 'plans.group_id', 'groups.id')
-                ->join('notes', 'plans.id', 'notes.plan_id')
-                ->select()
-                ->where([
-                    ['plans.active', 1],
-                    ['students.id', $request->student_id],
-                    ['notes.semester', $request->semester]
-                ])
-                ->first();
-        }catch (Exception $e){
-            return response($e, 500);
-        }
-
-        if ($ret === null) {
-            array_push($err, 'semester must exist');
-        }
+//        try{
+//            $ret = DB::table('students')
+//                ->join('groups', 'students.group_id', 'groups.id')
+//                ->join('plans', 'plans.group_id', 'groups.id')
+//                ->join('notes', 'plans.id', 'notes.plan_id')
+//                ->select()
+//                ->where([
+//                    ['plans.active', 1],
+//                    ['students.id', $request->student_id],
+//                    ['notes.semester', $request->semester]
+//                ])
+//                ->first();
+//        }catch (Exception $e){
+//            return response($e, 500);
+//        }
+//
+//        if ($ret === null) {
+//            array_push($err, 'semester must exist');
+//        }
 
         if (count($err) > 0) {
             return response($err, 400);
@@ -809,6 +879,18 @@ class StudentController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Student update',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else{
@@ -886,6 +968,18 @@ class StudentController extends Controller
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Student update',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 }else{
@@ -900,7 +994,7 @@ class StudentController extends Controller
 
     function delete_student($request){
         $date = date('Y-m-d H:i:s');
-
+        DB::beginTransaction();
         try {
             DB::table('students')
                 ->where('students.id', $request->student_id)
@@ -911,9 +1005,35 @@ class StudentController extends Controller
                     ]
                 );
         } catch (Exception $e) {
+            DB::rollback();
             return 'err';
         }
 
+        try{
+            $ret = DB::table('choises')
+
+                ->select('choises.id')
+                ->where([
+                    ['choises.student_id', $request->student_id]
+                ])->get();
+        }
+        catch (Exception $e){
+            DB::rollback();
+            return response($e, 500);
+        }
+        try {
+            $arr =[];
+            foreach ($ret as $item){
+                array_push($arr, $item->id);
+            }
+            Choise::destroy($arr);
+        } catch (Exception $e) {
+            DB::rollback();
+            return 'err';
+        }
+
+
+        DB::commit();
         return 'Delete OK';
     }
 
@@ -957,6 +1077,18 @@ class StudentController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Student delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else{
@@ -1015,6 +1147,18 @@ class StudentController extends Controller
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Student delete',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 }else{
@@ -1026,6 +1170,10 @@ class StudentController extends Controller
             }
         }
     }
+
+
+
+
 
     private function import_students($request){
         $date = date('Y-m-d H:i:s');
@@ -1088,7 +1236,7 @@ class StudentController extends Controller
             try{
                 $tmp = Student::create(
                     [
-                        'info' => $item[3],
+                       // 'info' => $item[3],
                         'group_id' => $request->group_id,
                         'user_id' => $newUser->id,
                         'created_at' => $date,
@@ -1167,6 +1315,18 @@ class StudentController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = StudentController::import_students($request);
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'Student import',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
         }else {
             try {
@@ -1246,6 +1406,18 @@ class StudentController extends Controller
                 }
                 if ($flag1 && $flag2) {
                     $ret = StudentController::import_students($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'Student import',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(json_encode($ret, JSON_UNESCAPED_UNICODE), $ret['code']);
                 }else{
                     return response('forbidden', 403);

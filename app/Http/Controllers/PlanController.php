@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Choise;
+use App\Lecturer_has_subject;
+use App\Log;
 use App\Plan;
+use App\SubjectRequirement;
 use Illuminate\Http\Request;
 use App\Note;
 use App\Imports\NoteImport;
@@ -192,6 +196,7 @@ class PlanController extends Controller
                             if($item->scope === 'own'){
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
+                                    ->join('departments', 'departments.id', '=', 'groups.department_id')
                                     ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                         ['departments.id', intval($user->department_id)],
                                         ['plans.hidden', 0],
@@ -201,6 +206,7 @@ class PlanController extends Controller
                             }else {
                                 $ret =  DB::table('plans')
                                     ->join('groups', 'groups.id', '=', 'plans.group_id')
+                                    ->join('departments', 'departments.id', '=', 'groups.department_id')
                                     ->select('plans.id', 'plans.title', 'plans.group_id','plans.active' , 'groups.code as group_code')->where([
                                         ['groups.department_id', intval($item->scope)],
                                         ['plans.hidden', 0],
@@ -286,6 +292,18 @@ class PlanController extends Controller
 
        if($user->id === 1){
            $ret = PlanController::create_plan($request);
+           $date = date('Y-m-d H:i:s');
+           try{
+               Log::create([
+                   'user_id' => $user->id,
+                   'action' => 'Plan create',
+                   'updated_at' => $date,
+                   'created_at' => $date
+               ]);
+           }
+           catch (Exception $e){
+               return response($e, 500);
+           }
            return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
 
        }else{
@@ -340,6 +358,18 @@ class PlanController extends Controller
                }
                if($flag){
                    $ret = PlanController::create_plan($request);
+                   $date = date('Y-m-d H:i:s');
+                   try{
+                       Log::create([
+                           'user_id' => $user->id,
+                           'action' => 'Plan create',
+                           'updated_at' => $date,
+                           'created_at' => $date
+                       ]);
+                   }
+                   catch (Exception $e){
+                       return response($e, 500);
+                   }
                    return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                }else{
                    return response('forbidden', 403);
@@ -359,6 +389,7 @@ class PlanController extends Controller
                    [
                        'title' => $request->title,
                        'group_id' => $request->group_id,
+                       'active' => 0,
                        'updated_at' => $date,
                    ]
                );
@@ -439,6 +470,18 @@ class PlanController extends Controller
            if($ret === 'err'){
                return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
            }else{
+               $date = date('Y-m-d H:i:s');
+               try{
+                   Log::create([
+                       'user_id' => $user->id,
+                       'action' => 'Plan update',
+                       'updated_at' => $date,
+                       'created_at' => $date
+                   ]);
+               }
+               catch (Exception $e){
+                   return response($e, 500);
+               }
                return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
            }
        }else {
@@ -519,6 +562,18 @@ class PlanController extends Controller
                    if ($ret === 'err') {
                        return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                    } else {
+                       $date = date('Y-m-d H:i:s');
+                       try{
+                           Log::create([
+                               'user_id' => $user->id,
+                               'action' => 'Plan update',
+                               'updated_at' => $date,
+                               'created_at' => $date
+                           ]);
+                       }
+                       catch (Exception $e){
+                           return response($e, 500);
+                       }
                        return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                    }
                } else {
@@ -533,32 +588,101 @@ class PlanController extends Controller
    private  function delete_plan($request){
        $date = date('Y-m-d H:i:s');
        DB::beginTransaction();
+       try{
+           $ret = DB::table('choises')
+               ->join('notes', 'notes.id', 'choises.subject_id')
+               ->select('choises.id')
+               ->where([
+                   ['notes.plan_id', $request->plan_id],
+                   ['choises.subject_type', 'N']
+               ])->get();
+       }
+       catch (Exception $e){
+           DB::rollback();
+           return response($e, 500);
+       }
        try {
-           DB::table('plans')
-               ->where('plans.id', $request->plan_id)
-               ->update(
-                   [
-                       'hidden' => true,
-                       'updated_at' => $date,
-                   ]
-               );
+          $arr =[];
+          foreach ($ret as $item){
+              array_push($arr, $item->id);
+          }
+          Choise::destroy($arr);
+       } catch (Exception $e) {
+           DB::rollback();
+           return 'err';
+       }
+       try{
+           $ret = DB::table('notes')
+               ->join('lecturer_has_subjects', 'notes.id', 'lecturer_has_subjects.subject_id')
+               ->select('lecturer_has_subjects.id')
+               ->where([
+                   ['notes.plan_id', $request->plan_id]
+               ])->get();
+       }
+       catch (Exception $e){
+           DB::rollback();
+           return response($e, 500);
+       }
+       $arr =[];
+       foreach ($ret as $item){
+           array_push($arr, $item->id);
+       }
+       try {
+           Lecturer_has_subject::destroy($arr);
+       } catch (Exception $e) {
+           DB::rollback();
+           return 'err';
+       }
+       try{
+           $ret = DB::table('notes')
+               ->join('subject_requirements', 'notes.id', 'subject_requirements.subject_id')
+               ->select('subject_requirements.id')
+               ->where([
+                   ['notes.plan_id', $request->plan_id]
+               ])->get();
+       }
+       catch (Exception $e){
+           DB::rollback();
+           return response($e, 500);
+       }
+       $arr =[];
+       foreach ($ret as $item){
+           array_push($arr, $item->id);
+       }
+       try {
+           SubjectRequirement::destroy($arr);
+       } catch (Exception $e) {
+           DB::rollback();
+           return 'err';
+       }
+       try{
+           $ret = DB::table('notes')
+               ->select('notes.id')
+               ->where([
+                   ['notes.plan_id', $request->plan_id]
+               ])->get();
+       }
+       catch (Exception $e){
+           DB::rollback();
+           return response($e, 500);
+       }
+       $arr =[];
+       foreach ($ret as $item){
+           array_push($arr, $item->id);
+       }
+       try {
+           Note::destroy($arr);
        } catch (Exception $e) {
            DB::rollback();
            return 'err';
        }
        try {
-           DB::table('notes')
-               ->where('notes.plan_id', $request->plan_id)
-               ->update(
-                   [
-                       'hidden' => true,
-                       'updated_at' => $date,
-                   ]
-               );
+           Plan::destroy( $request->plan_id);
        } catch (Exception $e) {
            DB::rollback();
            return 'err';
        }
+
        DB::commit();
        return 'Delete OK';
    }
@@ -610,6 +734,18 @@ class PlanController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Plan delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else {
@@ -671,6 +807,18 @@ class PlanController extends Controller
                     if($ret === 'err'){
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     }else{
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Plan delete',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 }else{
@@ -682,6 +830,7 @@ class PlanController extends Controller
             }
         }
     }
+
 
 
     private  function import_plane($request){
@@ -700,22 +849,190 @@ class PlanController extends Controller
             DB::rollback();
             return 'err';
         }
+
+
         $array = Excel::toArray(null, request()->file('file'));
+
+
+        $weeksOnSemester = [];
+        $j =0;
+        for($i = 17; $i < 17+8; $i++){
+            $weeksOnSemester[$j]= $array[1][8][$i];
+            $j++;
+        }
+
+        $flag = 0;
+        $subject_name = '';
+
+
+
 
         $ret = [];
         $ret['plan']=$tmpPlan;
         $ret['notes']=[];
-        foreach ($array[0] as $item){
-            try {
-                $tmp = Note::create(
-                    [
-                        'hours' => $item[1],
-                        'semester' => $item[0],
+
+
+        $counter = 0;
+        foreach ($array[1] as $row){
+            $counter++;
+
+            if(strripos($row[0], 'Нормативні дисципліни') !== false){
+
+                $flag = 1;
+                continue;
+            }
+            if(strripos($row[0], 'Вибіркові дисципліни') !== false){
+                $flag = 2;
+                continue;
+            }
+            if(strripos($row[0], 'Всього') !== false){
+                $flag = 0;
+                continue;
+            }
+            if(strripos($row[0], 'Практична підготовка') !== false){
+                break;
+            }
+
+            if($flag === 0){
+                continue;
+            }
+
+            if($row[0]!== null){
+                $subject_name = $row[2];
+                if($array[1][$counter][0]!== null){
+                    $semester = 0;
+                    for($i = 17; $i < 17+8; $i++){
+                        if($row[$i] !== null){
+                            $semester = $i-16;
+                        }
+                    }
+
+
+                    $inp =   [
                         'plan_id' => $tmpPlan->id,
+                        'subject_name' => $subject_name,
+                        'semester' => $semester,
+                        'weeks_in_semester' => $weeksOnSemester[$semester-1],
+                        'par_per_week' => $row[$semester-1 + 17],
+                        'credits_ECTS' => $row[17+9+$semester-1],
                         'created_at' => $date,
-                        'updated_at' => $date,
-                    ]
-                );
+                        'updated_at' => $date
+                    ];
+
+
+                    if($row[6] !== null){
+                        $inp['zalic_or_examen']= 'E';
+                        $inp['z_or_e_number']= $row[6];
+                    }
+                    if($row[7] !== null){
+                        $inp['zalic_or_examen']= 'Z';
+                        $inp['z_or_e_number']= $row[7];
+                    }
+
+                    if($row[8] !== null){
+                        $inp['cours_projects']= $row[8] ;
+                    }
+                    if($row[9] !== null){
+                        $inp['cours_work']= $row[9] ;
+                    }
+
+                    if($row[13] !== null){
+                        $inp['leccii']= $row[13] ;
+                    }
+                    if($row[14] !== null){
+                        $inp['laborat']= $row[14] ;
+                    }
+                    if($row[15] !== null){
+                        $inp['practik']= $row[15] ;
+                    }
+                    if($row[16] !== null){
+                        $inp['samostiyna_robta']= $row[16] ;
+                    }
+
+                    if( $flag == 1){
+                        $inp['type']= 'N';
+                    }
+                    if( $flag == 2){
+                        $inp['type']= 'V';
+                    }
+
+
+
+
+
+                    try {
+                        $tmp = Note::create($inp);
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        return 'err';
+                    }
+                    array_push( $ret['notes'], $tmp);
+                }
+                continue;
+            }
+
+            $semester = 0;
+            for($i = 17; $i < 17+8; $i++){
+                if($row[$i] !== null){
+                    $semester = $i-16;
+                }
+            }
+
+
+            $inp =   [
+                'plan_id' => $tmpPlan->id,
+                'subject_name' => $subject_name,
+                'semester' => $semester,
+                'weeks_in_semester' => $weeksOnSemester[$semester-1],
+                'par_per_week' => $row[$semester-1 + 17],
+                'credits_ECTS' => $row[17+9+$semester-1],
+                'created_at' => $date,
+                'updated_at' => $date
+            ];
+
+
+            if($row[6] !== null){
+                $inp['zalic_or_examen']= 'E';
+                $inp['z_or_e_number']= $row[6];
+            }
+            if($row[7] !== null){
+                $inp['zalic_or_examen']= 'Z';
+                $inp['z_or_e_number']= $row[7];
+            }
+
+            if($row[8] !== null){
+                $inp['cours_projects']= $row[8] ;
+            }
+            if($row[9] !== null){
+                $inp['cours_work']= $row[9] ;
+            }
+
+            if($row[13] !== null){
+                $inp['leccii']= $row[13] ;
+            }
+            if($row[14] !== null){
+                $inp['laborat']= $row[14] ;
+            }
+            if($row[15] !== null){
+                $inp['practik']= $row[15] ;
+            }
+            if($row[16] !== null){
+                $inp['samostiyna_robta']= $row[16] ;
+            }
+
+            if( $flag == 1){
+                $inp['type']= 'N';
+            }
+            if( $flag == 2){
+                $inp['type']= 'V';
+            }
+
+
+
+
+
+            try {
+                $tmp = Note::create($inp);
             } catch (\Exception $e) {
                 DB::rollback();
                 return 'err';
@@ -724,6 +1041,7 @@ class PlanController extends Controller
         }
         DB::commit();
         return $ret;
+
     }
 
     public function import(Request $request){
@@ -773,6 +1091,18 @@ class PlanController extends Controller
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = PlanController::import_plane($request);
             if($ret !== 'err'){
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Plan import',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }else {
                 return response('server error', 500);
@@ -865,6 +1195,18 @@ class PlanController extends Controller
                 if ($flag1 && $flag2) {
                     $ret = PlanController::import_plane($request);
                     if($ret !== 'err'){
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Plan import',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }else {
                         return response('server error', 500);
@@ -909,7 +1251,7 @@ class PlanController extends Controller
             try {
                 $ret2 = DB::table('notes')
                     ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                    ->select('notes.id', 'notes.hours', 'notes.semester', 'notes.plan_id', 'plans.title as plan_title')->where([
+                    ->select('notes.id', 'notes.credits_ECTS', 'notes.type','notes.semester','notes.zalic_or_examen','notes.z_or_e_number','notes.cours_projects', 'notes.cours_work','notes.leccii', 'notes.laborat','notes.practik', 'notes.samostiyna_robta','notes.weeks_in_semester','notes.par_per_week','notes.subject_name', 'notes.plan_id', 'plans.title as plan_title')->where([
                         ['notes.plan_id', $id],
                         ['notes.hidden', 0]
                     ])->get();
@@ -954,7 +1296,7 @@ class PlanController extends Controller
                 try {
                     $ret4 = DB::table('notes')
                         ->join('plans', 'plans.id', '=', 'notes.plan_id')
-                        ->select('notes.id', 'notes.hours', 'notes.semester', 'notes.plan_id', 'plans.title as plan_title')->where([
+                        ->select('notes.id', 'notes.type','notes.semester','notes.zalic_or_examen','notes.z_or_e_number','notes.cours_projects', 'notes.cours_work','notes.leccii', 'notes.laborat','notes.practik', 'notes.samostiyna_robta','notes.weeks_in_semester','notes.par_per_week','notes.subject_name', 'notes.plan_id', 'plans.title as plan_title')->where([
                             ['notes.plan_id', $id],
                             ['notes.hidden', 0]
                         ])->get();
@@ -1131,6 +1473,18 @@ class PlanController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'Plan set active',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else {
@@ -1192,6 +1546,18 @@ class PlanController extends Controller
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'Plan set active',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 } else {

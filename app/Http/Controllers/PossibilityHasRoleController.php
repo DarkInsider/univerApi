@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Log;
 use App\Possibility_has_role;
 use Illuminate\Http\Request;
 
@@ -244,6 +245,18 @@ class PossibilityHasRoleController extends Controller
                     'updated_at' => $date,
                 ]
             );
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'PossibilityHasRole create',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             return response(json_encode('forbidden', JSON_UNESCAPED_UNICODE), 403);
@@ -358,6 +371,18 @@ class PossibilityHasRoleController extends Controller
             if($ret === 'err'){
                 return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 500);
             }else {
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'PossibilityHasRole update',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
 
@@ -416,6 +441,18 @@ class PossibilityHasRoleController extends Controller
             if($ret === 'err'){
                 return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 500);
             }else {
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'PossibilityHasRole delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(  json_encode('deleted', JSON_UNESCAPED_UNICODE), 200);
             }
 

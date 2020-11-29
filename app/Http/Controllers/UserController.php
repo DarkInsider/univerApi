@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Log;
 use Illuminate\Http\Request;
 use App\Http\Requests\UserRequest;
 use App\User;
@@ -71,6 +72,18 @@ class UserController extends Controller
                 return response($e, 500);
             }
 
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'User login',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
 
 
             return response(json_encode($user), 200);
@@ -93,6 +106,17 @@ class UserController extends Controller
         }
 
         try{
+            $user = DB::table('users')
+                ->select()
+                ->where([['users.token', $request->header('token')],['users.hidden',0]])
+                ->first();
+
+        }
+        catch (Exception $e){
+            return response(  json_encode('Server error', JSON_UNESCAPED_UNICODE), 500);
+        }
+
+        try{
             $date = date('Y-m-d H:i:s');
             DB::table('users')
                 ->where('users.token', $request->header('token'))
@@ -103,6 +127,18 @@ class UserController extends Controller
         }
         catch (Exception $e){
             return response(  json_encode('Server error', JSON_UNESCAPED_UNICODE), 500);
+        }
+        $date = date('Y-m-d H:i:s');
+        try{
+            Log::create([
+                'user_id' => $user->id,
+                'action' => 'User logout',
+                'updated_at' => $date,
+                'created_at' => $date
+            ]);
+        }
+        catch (Exception $e){
+            return response($e, 500);
         }
         return response(  json_encode('Logout OK', JSON_UNESCAPED_UNICODE), 200);
     }
@@ -154,54 +190,109 @@ class UserController extends Controller
         }
         if($ret3 != null) {
             $user->isStudent = true;
-            $user->student_id = $ret3->id;
-            try {
-                $ret2 = DB::table('groups')
-                    ->join('plans', 'groups.id', '=', 'plans.group_id')
-                    ->select('plans.id as plan_id')->where([
-                        ['groups.id', $ret3->group_id],
-                        ['plans.active', 1],
-                        ['plans.hidden', 0]
-                    ])->first();
-            } catch (Exception $e) {
-                return response($e, 500);
-            }
-
-            if ($ret2 != null) {
-                    try {
-                        $tmp = DB::table('notes')
-                            ->select(DB::raw('SUM(hours) as total_hours'))->where([
-                                ['notes.plan_id', $ret2->plan_id],
-                                ['notes.semester', $ret3->semester],
-                                ['notes.hidden', 0]
-                            ])
-                            ->groupBy('semester')
-                            ->first();
-                    } catch (Exception $e) {
-                        return response($e, 500);
-                    }
-                $user->hours = $tmp->total_hours;
-
-                    try {
-                        $tmp = DB::table('choises')
-                            ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
-                            ->select(DB::raw('SUM(subjects.hours) as total_hours'))->where([
-                                ['choises.student_id', $ret3->id],
-                                ['choises.hidden', 0]
-                            ])
-                            ->groupBy('choises.student_id')
-                            ->first();
-                    } catch (Exception $e) {
-                        return response($e, 500);
-                    }
-                    if ($tmp !== null) {
-                        $user->hours_selected = $tmp->total_hours;
-                    } else {
-                        $user->hours_selected = 0;
-                    }
-            } else {
-
-            }
+//            $user->student_id = $ret3->id;
+//            try {
+//                $ret2 = DB::table('groups')
+//                    ->join('plans', 'groups.id', '=', 'plans.group_id')
+//                    ->select('plans.id as plan_id', 'groups.semester')->where([
+//                        ['groups.id', $ret3->group_id],
+//                        ['plans.active', 1],
+//                        ['plans.hidden', 0]
+//                    ])->first();
+//            } catch (Exception $e) {
+//                return response($e, 500);
+//            }
+//
+//            if ($ret2 != null) {
+//                    try {
+//                        $tmp = DB::table('notes')
+//                            ->select(DB::raw('SUM(credits_ECTS) as total_credits_ECTS'))->where([
+//                                ['notes.plan_id', $ret2->plan_id],
+//                                ['notes.semester', $ret2->semester],
+//                                ['notes.type', 'V'],
+//                                ['notes.hidden', 0]
+//                            ])
+//                            ->groupBy('semester')
+//                            ->first();
+//                    } catch (Exception $e) {
+//                        return response($e, 500);
+//                    }
+//                    if($tmp !== null){
+//                        $user->hours = $tmp->total_credits_ECTS;
+//                    }else{
+//                        $user->hours = 0;
+//                    }
+//
+//
+//                $creditsSum = 0;
+//
+//                try {
+//                    $tmp = DB::table('choises')
+//                        ->select('choises.subject_id','choises.subject_type')->where([
+//                            ['choises.student_id', $ret3->id],
+//                            ['choises.hidden', 0]
+//                        ])
+//                        ->get();
+//                } catch (Exception $e) {
+//                    return response($e, 500);
+//                }
+//                if(count($tmp) > 0) {
+//                    foreach ($tmp as $item) {
+//                        if ($item->subject_type === 'V') {
+//                            try {
+//                                $sub1 = DB::table('subjects')
+//                                    ->select('subjects.id', 'subjects.credits_ECTS')->where([
+//                                        ['subjects.id', $item->subject_id],
+//                                        ['subjects.hidden', 0],
+//                                        ['subjects.active', 1]
+//                                    ])->first();
+//                            } catch (Exception $e) {
+//                                return response($e, 500);
+//                            }
+//                            if ($sub1 === null) {
+//
+//                            } else {
+//                                $creditsSum += $sub1->credits_ECTS;
+//                            }
+//                        } else if ($item->subject_type === 'N') {
+//                            try {
+//                                $sub2 = DB::table('notes')
+//                                    ->select('notes.id', 'notes.credits_ECTS')->where([
+//                                        ['notes.id', $item->subject_id],
+//                                        ['notes.hidden', 0]
+//                                    ])->first();
+//                            } catch (Exception $e) {
+//                                return response($e, 500);
+//                            }
+//                            if ($sub2 === null) {
+//                            } else {
+//                                $creditsSum += $sub2->credits_ECTS;
+//                            }
+//                        }
+//                    }
+//                }
+//                $user->hours_selected = $creditsSum;
+//
+////                    try {
+////                        $tmp = DB::table('choises')
+////                            ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
+////                            ->select(DB::raw('SUM(subjects.hours) as total_hours'))->where([
+////                                ['choises.student_id', $ret3->id],
+////                                ['choises.hidden', 0]
+////                            ])
+////                            ->groupBy('choises.student_id')
+////                            ->first();
+////                    } catch (Exception $e) {
+////                        return response($e, 500);
+////                    }
+////                    if ($tmp !== null) {
+////                        $user->hours_selected = $tmp->total_hours;
+////                    } else {
+////                        $user->hours_selected = 0;
+////                    }
+//            } else {
+//
+//            }
         }else {
             $user->isStudent = false;
         }
@@ -307,6 +398,20 @@ class UserController extends Controller
 
         if($user->id === 1){  //Если суперюзер то сразу выполняем
             $ret = UserController::create_user($request);
+
+            $date = date('Y-m-d H:i:s');
+            try{
+                Log::create([
+                    'user_id' => $user->id,
+                    'action' => 'User create',
+                    'updated_at' => $date,
+                    'created_at' => $date
+                ]);
+            }
+            catch (Exception $e){
+                return response($e, 500);
+            }
+
             return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
         }else {
             try{
@@ -364,6 +469,18 @@ class UserController extends Controller
 
                 if($flag){
                     $ret =  UserController::create_user($request);
+                    $date = date('Y-m-d H:i:s');
+                    try{
+                        Log::create([
+                            'user_id' => $user->id,
+                            'action' => 'User create',
+                            'updated_at' => $date,
+                            'created_at' => $date
+                        ]);
+                    }
+                    catch (Exception $e){
+                        return response($e, 500);
+                    }
                     return response(  json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                 }else{
                     return response('forbidden', 403);
@@ -749,6 +866,18 @@ class UserController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'User update',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else{
@@ -831,6 +960,18 @@ class UserController extends Controller
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'User update',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 } else {
@@ -906,6 +1047,18 @@ class UserController extends Controller
             if($ret === 'err'){
                 return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
             }else{
+                $date = date('Y-m-d H:i:s');
+                try{
+                    Log::create([
+                        'user_id' => $user->id,
+                        'action' => 'User delete',
+                        'updated_at' => $date,
+                        'created_at' => $date
+                    ]);
+                }
+                catch (Exception $e){
+                    return response($e, 500);
+                }
                 return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
             }
         }else {
@@ -968,6 +1121,18 @@ class UserController extends Controller
                     if ($ret === 'err') {
                         return response(json_encode('server error', JSON_UNESCAPED_UNICODE), 500);
                     } else {
+                        $date = date('Y-m-d H:i:s');
+                        try{
+                            Log::create([
+                                'user_id' => $user->id,
+                                'action' => 'User delete',
+                                'updated_at' => $date,
+                                'created_at' => $date
+                            ]);
+                        }
+                        catch (Exception $e){
+                            return response($e, 500);
+                        }
                         return response(json_encode($ret, JSON_UNESCAPED_UNICODE), 200);
                     }
                 } else {

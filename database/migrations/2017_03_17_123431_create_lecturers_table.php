@@ -15,7 +15,7 @@ class CreateLecturersTable extends Migration
     {
         Schema::create('lecturers', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('info');
+            $table->longText('info')->nullable();
             $table->bigInteger('user_id')->unsigned();
             $table->foreign('user_id')->references('id')->on('users');
             $table->boolean('hidden')->default(false);

@@ -11,13 +11,33 @@ class ChoiseExport implements FromCollection
 
         $resp=[];
         try{
-            $ret = DB::table('choises')
+            $ret1 = DB::table('choises')
                 ->join('subjects', 'subjects.id', '=', 'choises.subject_id')
-                ->select('subjects.title', 'choises.subject_id')
+                ->select('subjects.title', 'choises.subject_id','choises.subject_type')
+                ->where([['choises.subject_type', 'V']])
                 ->distinct()
                 ->get();
         }catch (Exception $e){
             $ret = [];
+        }
+
+        try{
+            $ret2 = DB::table('choises')
+                ->join('notes', 'notes.id', '=', 'choises.subject_id')
+                ->select('notes.subject_name as title', 'choises.subject_id','choises.subject_type')
+                ->where([['choises.subject_type', 'N']])
+                ->distinct()
+                ->get();
+        }catch (Exception $e){
+            $ret = [];
+        }
+
+        $ret =[];
+        foreach ($ret1 as $item){
+            array_push($ret, $item);
+        }
+        foreach ($ret2 as $item){
+            array_push($ret, $item);
         }
 
         foreach ($ret as $sel){

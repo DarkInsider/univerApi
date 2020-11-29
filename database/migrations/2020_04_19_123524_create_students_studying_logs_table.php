@@ -1,10 +1,11 @@
 <?php
 
+
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateChoisesTable extends Migration
+class CreateStudentsStudyingLogsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,14 +14,18 @@ class CreateChoisesTable extends Migration
      */
     public function up()
     {
-        Schema::create('choises', function (Blueprint $table) {
+        Schema::create('students_studying_logs', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->integer('semester')->nullable();
-            $table->dateTime('date');
             $table->bigInteger('student_id')->unsigned();
             $table->foreign('student_id')->references('id')->on('students');
-            $table->bigInteger('subject_id')->unsigned();
-            $table->string('subject_type');
+            $table->string('university');
+            $table->date('date');
+            $table->string('specialty')->nullable();
+            $table->string('group_name');
+            $table->string('subject_title');
+            $table->integer('difficult')->default(1);
+            $table->float('credits_ECTS');
+            $table->integer('semester');
             $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
@@ -33,6 +38,6 @@ class CreateChoisesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('choises');
+        Schema::dropIfExists('students_studying_logs');
     }
 }

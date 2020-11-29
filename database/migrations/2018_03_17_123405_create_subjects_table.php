@@ -17,8 +17,11 @@ class CreateSubjectsTable extends Migration
             $table->bigIncrements('id');
             $table->string('title');
             $table->string('type');
-            $table->integer('hours');
-            $table->longText('html')->nullable();
+            $table->integer('credits_ECTS');
+            $table->integer('semester')->default(1);
+            $table->string('gradue_type')->default('B');
+            $table->longText('subject_description')->nullable();
+            $table->integer('difficult')->default(1);
             $table->bigInteger('lecturer_id')->unsigned();
             $table->foreign('lecturer_id')->references('id')->on('lecturers');
             $table->bigInteger('department_id')->unsigned();
